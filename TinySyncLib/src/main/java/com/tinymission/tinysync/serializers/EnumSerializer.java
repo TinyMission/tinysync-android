@@ -26,4 +26,9 @@ public class EnumSerializer extends DbSerializer {
     public String serialize(DbModel model, Field field) throws IllegalAccessException {
         return field.get(model).toString();
     }
+
+    @Override
+    public int getColumnType() {
+        return Cursor.FIELD_TYPE_INTEGER;
+    }
 }

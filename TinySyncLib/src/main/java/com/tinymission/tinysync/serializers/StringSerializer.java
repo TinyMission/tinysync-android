@@ -19,4 +19,9 @@ public class StringSerializer extends DbSerializer {
     public String serialize(DbModel model, Field field) throws IllegalAccessException {
         return (String)field.get(model);
     }
+
+    @Override
+    public int getColumnType() {
+        return Cursor.FIELD_TYPE_STRING;
+    }
 }

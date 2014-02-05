@@ -49,5 +49,11 @@ public class DbColumnMap {
         _serializer = DbSerializer.factory(field.getType());
     }
 
+    /**
+     * @return a string that can be used to create this column.
+     */
+    public String getColumnDef() {
+        return _columnName + " " + DbSerializer.columnTypeName(_serializer.getColumnType());
+    }
 
 }

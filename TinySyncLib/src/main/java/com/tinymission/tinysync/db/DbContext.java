@@ -1,6 +1,11 @@
 package com.tinymission.tinysync.db;
 
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+
+import com.google.common.base.Joiner;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -18,7 +23,6 @@ public abstract class DbContext {
     private static final String LogTag = "tinysync.db.DbContext";
 
     private ArrayList<DbSet> _sets = new ArrayList<DbSet>();
-
     /**
      * @return the values of the DbSet fields in this context
      */
@@ -26,7 +30,28 @@ public abstract class DbContext {
         return _sets;
     }
 
-    public DbContext() {
+    private String _databaseName;
+    /**
+     * @return the name of the database this context uses for persistence
+     */
+    public String getDatabaseName() {
+        return _databaseName;
+    }
+
+    private Context _androidContext;
+    /**
+     * @return the android context used to obtain a database connection
+     */
+    public Context getAndroidContext() {
+        return _androidContext;
+    }
+
+    DbOpenHelper _openHelper;
+
+    public DbContext(Context androidContext) {
+        _databaseName = getClass().getSimpleName();
+        _androidContext = androidContext;
+        _openHelper = new DbOpenHelper(this);
     }
 
 
@@ -54,6 +79,44 @@ public abstract class DbContext {
         }
 
         _isInitialized = true;
+    }
+
+    /**
+     * Opens the database connection (if it isn't open already) and makes sure the schema is up to date.
+     * This can be called in the background or at a time of your choosing to avoid having it happen
+     * automatically when the first query is run.
+     */
+    public void touch() {
+        SQLiteDatabase db = _openHelper.getWritableDatabase();
+        db.close();
+    }
+
+
+    boolean doesTableExist(SQLiteDatabase db, String tableName) {
+        String query = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?;";
+        Cursor cursor = db.rawQuery(query, new String[] {tableName});
+        if (!cursor.moveToFirst())
+            return false;
+        return cursor.getInt(0) > 0;
+    }
+
+    /**
+     * Updates the schema of the database to ensure it's the same as that of the models.
+     * If no database is present, one will be created with the current model schema.
+     */
+    public void updateSchema(SQLiteDatabase db) {
+        for (DbSet set: _sets) {
+            String tableName = set.getTableName();
+            if (!doesTableExist(db, tableName)) {
+                List<String> columnDefs = set.getColumnDefs();
+                String columnStatement = Joiner.on(", ").join(columnDefs);
+                Log.v(LogTag, "Table " + tableName + " does not exist, creating it with " + columnStatement);
+                db.rawQuery("CREATE TABLE " + tableName + "(" + columnStatement + ")", null);
+            }
+            else {
+                Log.v(LogTag, "Table " + tableName + " already exists");
+            }
+        }
     }
 
 }

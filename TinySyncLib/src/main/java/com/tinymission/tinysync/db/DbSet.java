@@ -6,7 +6,9 @@ import com.google.common.base.CaseFormat;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Provides an interface to query and persist records to a single table.
@@ -49,6 +51,17 @@ public class DbSet<T extends DbModel> {
 
     }
 
+
+    /**
+     * @return the column definitions, for use with CREATE TABLE.
+     */
+    public List<String> getColumnDefs() {
+        ArrayList<String> defs = new ArrayList<String>();
+        for (DbColumnMap columnMap: _columnMaps.values()) {
+            defs.add(columnMap.getColumnDef());
+        }
+        return defs;
+    }
 
 
 }

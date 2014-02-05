@@ -20,4 +20,9 @@ public class IntSerializer extends DbSerializer {
         Integer value = (Integer)field.get(model);
         return value.toString();
     }
+
+    @Override
+    public int getColumnType() {
+        return Cursor.FIELD_TYPE_INTEGER;
+    }
 }

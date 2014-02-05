@@ -1,5 +1,7 @@
 package models;
 
+import android.content.Context;
+
 import com.tinymission.tinysync.db.DbContext;
 import com.tinymission.tinysync.db.DbSet;
 
@@ -14,4 +16,7 @@ public class MyContext extends DbContext {
 
     public final DbSet<Comment> comments = new DbSet<Comment>(Comment.class);
 
+    public MyContext(Context androidContext) {
+        super(androidContext);
+    }
 }
