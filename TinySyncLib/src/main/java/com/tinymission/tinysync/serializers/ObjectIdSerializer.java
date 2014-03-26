@@ -1,5 +1,6 @@
 package com.tinymission.tinysync.serializers;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 
 import com.tinymission.tinysync.db.DbModel;
@@ -20,6 +21,11 @@ public class ObjectIdSerializer extends DbSerializer {
     @Override
     public String serialize(DbModel model, Field field) throws IllegalAccessException {
         return field.get(model).toString();
+    }
+
+    @Override
+    public void serialize(DbModel model, Field field, ContentValues values, String name) throws IllegalAccessException {
+        values.put(name, field.get(model).toString());
     }
 
     @Override

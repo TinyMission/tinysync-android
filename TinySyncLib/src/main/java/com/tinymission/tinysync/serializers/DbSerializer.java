@@ -1,7 +1,7 @@
 package com.tinymission.tinysync.serializers;
 
+import android.content.ContentValues;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.tinymission.tinysync.db.DbModel;
@@ -48,6 +48,18 @@ public abstract class DbSerializer {
     public abstract String serialize(DbModel model, Field field)
             throws IllegalAccessException;
 
+
+    /**
+     * Serialize a column value into
+     * @param model the model object
+     * @param field the meta data for the model field
+     * @param values a ContentValues collection to add the serialized value to
+     * @param name the name of the field to assign in the content values
+     * @throws IllegalAccessException
+     */
+    public abstract void serialize(DbModel model, Field field, ContentValues values, String name)
+        throws IllegalAccessException;
+
     /**
      * @return the column type this serializer maps to.
      * Should be one of Cursor.FIELD_TYPE_* values.
@@ -59,7 +71,7 @@ public abstract class DbSerializer {
             case Cursor.FIELD_TYPE_INTEGER:
                 return "INTEGER";
             case Cursor.FIELD_TYPE_FLOAT:
-                return "FLOAT";
+                return "REAL";
             case Cursor.FIELD_TYPE_BLOB:
                 return "BLOB";
             default:
@@ -85,6 +97,8 @@ public abstract class DbSerializer {
             serializer = new StringSerializer();
         else if (type == int.class || type == Integer.class)
             serializer = new IntSerializer();
+        else if (type == float.class || type == Float.class)
+            serializer = new FloatSerializer();
         else if (type == ObjectId.class)
             serializer = new ObjectIdSerializer();
         else if (type == DateTime.class)

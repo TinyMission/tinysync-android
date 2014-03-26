@@ -7,16 +7,26 @@ import com.tinymission.tinysync.db.ObjectId;
 import org.joda.time.DateTime;
 
 /**
- * Wraps rows of the comment table.
+ * Wraps rows of the post table.
  */
-public class Comment extends DbModel {
+public class Post extends DbModel {
+
+    @DbColumn()
+    public String title;
+
+    @DbColumn()
+    public DateTime postedAt;
 
     @DbColumn()
     public String body;
 
     @DbColumn()
-    public DateTime commentedAt;
+    public int points;
 
     @DbColumn()
-    public ObjectId postId;
+    public ObjectId authorId;
+
+    @DbColumn()
+    public float averageRating;
+
 }

@@ -1,5 +1,6 @@
 package com.tinymission.tinysync.serializers;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 
 import com.tinymission.tinysync.db.DbModel;
@@ -28,7 +29,16 @@ public class EnumSerializer extends DbSerializer {
     }
 
     @Override
+    public void serialize(DbModel model, Field field, ContentValues values, String name) throws IllegalAccessException {
+        Object value = field.get(model);
+        if (value != null)
+            values.put(name, value.toString());
+        else
+            values.putNull(name);
+    }
+
+    @Override
     public int getColumnType() {
-        return Cursor.FIELD_TYPE_INTEGER;
+        return Cursor.FIELD_TYPE_STRING;
     }
 }

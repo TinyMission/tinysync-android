@@ -55,6 +55,8 @@ public abstract class DbContext {
     }
 
 
+    //region Initialization
+
     private boolean _isInitialized = false;
 
     /**
@@ -110,13 +112,37 @@ public abstract class DbContext {
             if (!doesTableExist(db, tableName)) {
                 List<String> columnDefs = set.getColumnDefs();
                 String columnStatement = Joiner.on(", ").join(columnDefs);
-                Log.v(LogTag, "Table " + tableName + " does not exist, creating it with " + columnStatement);
-                db.rawQuery("CREATE TABLE " + tableName + "(" + columnStatement + ")", null);
+                Log.d(LogTag, "Table " + tableName + " does not exist, creating it with " + columnStatement);
+                db.execSQL("CREATE TABLE " + tableName + "(" + columnStatement + ")");
+                if (!doesTableExist(db, tableName))
+                    throw new RuntimeException("WTF, table still doesn't exist!");
             }
             else {
-                Log.v(LogTag, "Table " + tableName + " already exists");
+                Log.d(LogTag, "Table " + tableName + " already exists");
             }
         }
     }
+
+    public void destroySchema() {
+
+    }
+
+    //endregion
+
+
+    //region Persistence
+
+    public SaveResult save() {
+        initialize();
+        SaveResult result = new SaveResult();
+        SQLiteDatabase db = _openHelper.getWritableDatabase();
+        for (DbSet set: _sets) {
+            result.mergeFrom(set.save(this, db));
+        }
+        db.close();
+        return result;
+    }
+
+    //endregion
 
 }

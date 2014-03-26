@@ -6,25 +6,19 @@ import com.tinymission.tinysync.db.ObjectId;
 
 import org.joda.time.DateTime;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 /**
- * Wraps rows of the post table.
+ * Wraps rows of the comment table.
  */
-public class Post extends DbModel {
-
-    @DbColumn()
-    public String title;
-
-    @DbColumn()
-    public DateTime postedAt;
+public class Comment extends DbModel {
 
     @DbColumn()
     public String body;
 
     @DbColumn()
-    public int points;
+    public DateTime commentedAt;
 
     @DbColumn()
-    public ObjectId authorId;
-
-
+    public ObjectId postId;
 }
