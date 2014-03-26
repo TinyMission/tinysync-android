@@ -216,7 +216,20 @@ public class DbSet<T extends DbModel> {
                 columnMap.deserializeColumn(cursor, record, i);
             }
         }
+        record._persisted = true;
         return record;
+    }
+
+    /**
+     * @return the number of rows in the table
+     */
+    public long count() {
+        SQLiteDatabase db = _context.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + _tableName, null);
+        cursor.moveToFirst();
+        long count = cursor.getLong(0);
+        db.close();
+        return count;
     }
 
     /**

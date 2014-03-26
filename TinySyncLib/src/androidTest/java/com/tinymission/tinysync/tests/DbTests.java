@@ -4,8 +4,10 @@ import android.test.ActivityTestCase;
 import android.test.AndroidTestCase;
 import android.util.Log;
 
+import com.tinymission.tinysync.db.DbModel;
 import com.tinymission.tinysync.db.SaveResult;
 
+import org.joda.time.DateTime;
 import org.junit.Test;
 
 import models.Author;
@@ -49,6 +51,7 @@ public class DbTests extends AndroidTestCase {
 
         SaveResult result = _context.save();
         assertEquals(2, result.getInserted().size());
+        assertEquals(2, _context.authors.count());
         assertEquals(0, result.getUpdated().size());
         assertEquals(0, result.getErrored().size());
         assertEquals(0, _context.authors.getNew().size());
@@ -75,6 +78,9 @@ public class DbTests extends AndroidTestCase {
 
         Author bob2 = _context.authors.find(bob.id);
         assertEquals(bob.name, bob2.name);
+        assertTrue(bob2.isPersisted());
+        assertEquals(DbModel.SyncState.infant, bob2.syncState);
+        assertEquals(0, DateTime.now().getMillis()-bob2.createdAt.getMillis(), 50);
 
     }
 
