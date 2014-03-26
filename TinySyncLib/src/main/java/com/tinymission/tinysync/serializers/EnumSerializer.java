@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 
 import com.tinymission.tinysync.db.DbModel;
+import com.tinymission.tinysync.db.ObjectId;
 
 import java.lang.reflect.Field;
 
@@ -20,12 +21,19 @@ public class EnumSerializer extends DbSerializer {
 
     @Override
     public void deserializeColumn(Cursor cursor, DbModel model, int columnIndex, Field field) throws IllegalAccessException {
-        Enum.valueOf(_enumClass, cursor.getString(columnIndex));
+        String valString = cursor.getString(columnIndex);
+        if (valString == null)
+            field.set(model, null);
+        else
+            field.set(model, Enum.valueOf(_enumClass, valString));
     }
 
     @Override
     public String serialize(DbModel model, Field field) throws IllegalAccessException {
-        return field.get(model).toString();
+        Object value = field.get(model);
+        if (value == null)
+            return null;
+        return value.toString();
     }
 
     @Override

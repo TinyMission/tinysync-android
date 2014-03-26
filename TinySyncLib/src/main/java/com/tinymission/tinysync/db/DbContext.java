@@ -71,6 +71,7 @@ public abstract class DbContext {
             for (Field field: getClass().getFields()) {
                 if (DbSet.class.isAssignableFrom(field.getType())) {
                     DbSet set = (DbSet)field.get(this);
+                    set.setContext(this);
                     Log.v(LogTag, "Added DbSet for " + set.getTableName() + " to context " + getClass().getSimpleName());
                     _sets.add(set);
                 }
@@ -123,8 +124,30 @@ public abstract class DbContext {
         }
     }
 
+    /**
+     * Drops all tables mapped by this context.
+     */
     public void destroySchema() {
+        initialize();
+        SQLiteDatabase db = getWritableDatabase();
+        for (DbSet set: _sets) {
+            Log.d(LogTag, "Dropping table " + set.getTableName());
+            db.execSQL("DROP TABLE IF EXISTS " + set.getTableName());
+        }
+        db.close();
+    }
 
+    //endregion
+
+
+    //region Connections
+
+    public SQLiteDatabase getReadableDatabase() {
+        return _openHelper.getReadableDatabase();
+    }
+
+    public SQLiteDatabase getWritableDatabase() {
+        return _openHelper.getWritableDatabase();
     }
 
     //endregion

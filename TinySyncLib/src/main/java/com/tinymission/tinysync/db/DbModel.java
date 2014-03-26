@@ -15,7 +15,7 @@ import java.util.Set;
 public abstract class DbModel {
 
     public enum SyncState {
-        ALIVE, NEW, DEAD
+        infant, alive, dead
     }
 
     @DbColumn()
@@ -28,7 +28,7 @@ public abstract class DbModel {
     public DateTime updatedAt;
 
     @DbColumn()
-    public SyncState syncState = SyncState.NEW;
+    public SyncState syncState = SyncState.infant;
 
     boolean _persisted = false;
 

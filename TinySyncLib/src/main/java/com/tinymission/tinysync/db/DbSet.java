@@ -1,6 +1,7 @@
 package com.tinymission.tinysync.db;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Provides an interface to query and persist records to a single table.
@@ -21,6 +23,7 @@ public class DbSet<T extends DbModel> {
     private static final String LogTag = "tinysync.db.DbSet";
 
     public DbSet(Class<T> modelClass) {
+        _modelClass = modelClass;
         _tableName = tableizeClassName(modelClass.getSimpleName());
         Log.v(LogTag, "Parsing columns for table " + _tableName + " (" + modelClass.getName() + ")");
 
@@ -33,6 +36,14 @@ public class DbSet<T extends DbModel> {
                 }
             }
         }
+    }
+
+    private Class<T> _modelClass;
+
+    private DbContext _context;
+
+    public void setContext(DbContext context) {
+        _context = context;
     }
 
 
@@ -68,13 +79,40 @@ public class DbSet<T extends DbModel> {
         return defs;
     }
 
+    private String[] _columnNames = null;
+
+    private void readColumnNames(SQLiteDatabase db) {
+        if (_columnNames != null) return;
+        ArrayList<String> names = new ArrayList<String>();
+        Cursor ti = db.rawQuery("PRAGMA table_info(" + _tableName + ")", null);
+        while (ti.moveToNext()) {
+            names.add(ti.getString(1));
+        }
+        _columnNames = names.toArray(new String[names.size()]);
+    }
+
     //endregion
 
 
     //region Persistence
 
     private HashSet<T> _newRecords = new HashSet<T>();
+
+    /**
+     * @return all unpersisted records that have been added to the set since it was last saved or cleared
+     */
+    public Set<T> getNew() {
+        return _newRecords;
+    }
+
     private HashSet<T> _changedRecords = new HashSet<T>();
+
+    /**
+     * @return all persisted records that have been added to the set since it was last saved or cleared
+     */
+    public Set<T> getChanged() {
+        return _changedRecords;
+    }
 
     /**
      * Adds a new or existing record to be persisted when save() is called.
@@ -86,7 +124,7 @@ public class DbSet<T extends DbModel> {
             _newRecords.add(record);
     }
 
-    private boolean insertRecord(SQLiteDatabase db, T record) {
+    private ContentValues contentValuesForRecord(T record) {
         ContentValues values = new ContentValues(_columnMaps.size());
         for (DbColumnMap columnMap : _columnMaps.values()) {
             try {
@@ -96,8 +134,24 @@ public class DbSet<T extends DbModel> {
                 record.addError(new RecordError(record, columnMap.getColumnName(), ex));
             }
         }
+        return values;
+    }
+
+    private boolean insertRecord(SQLiteDatabase db, T record) {
         try {
+            ContentValues values = contentValuesForRecord(record);
             db.insertOrThrow(_tableName, null, values);
+        }
+        catch (Exception ex) {
+            record.addError(new RecordError(record, null, ex));
+        }
+        return !record.hasErrors();
+    }
+
+    private boolean updateRecord(SQLiteDatabase db, T record) {
+        try {
+            ContentValues values = contentValuesForRecord(record);
+            db.update(_tableName, values, "id = ?", new String[]{record.id.toString()});
         }
         catch (Exception ex) {
             record.addError(new RecordError(record, null, ex));
@@ -111,6 +165,8 @@ public class DbSet<T extends DbModel> {
      */
     SaveResult save(DbContext context, SQLiteDatabase db) {
         SaveResult result = new SaveResult();
+
+        // insert new records
         for (T record: _newRecords) {
             if (insertRecord(db, record)) {
                 record._persisted = true;
@@ -118,8 +174,19 @@ public class DbSet<T extends DbModel> {
             }
             else {
                 result.addErrored(record);
+                record.logErrors();
             }
-            record.logErrors();
+        }
+
+        // update changed records
+        for (T record: _changedRecords) {
+            if (updateRecord(db, record)) {
+                result.addUpdated(record);
+            }
+            else {
+                record.logErrors();
+                result.addErrored(record);
+            }
         }
 
         // remove all successfully persisted records from the queues
@@ -133,6 +200,44 @@ public class DbSet<T extends DbModel> {
         }
 
         return result;
+    }
+
+    //endregion
+
+
+    //region Querying
+
+    private T deserializeRow(Cursor cursor) throws IllegalAccessException, InstantiationException {
+        T record = _modelClass.newInstance();
+        for (int i=0; i<_columnNames.length; i++) {
+            String name = _columnNames[i];
+            DbColumnMap columnMap = _columnMaps.get(name);
+            if (columnMap != null) {
+                columnMap.deserializeColumn(cursor, record, i);
+            }
+        }
+        return record;
+    }
+
+    /**
+     * Look up a record by id.
+     */
+    public T find(ObjectId id) {
+        SQLiteDatabase db = _context.getReadableDatabase();
+        readColumnNames(db);
+        T record = null;
+        try {
+            Cursor cursor = db.query(_tableName, _columnNames, "id = ?", new String[] {id.toString()}, null, null, null, "1");
+            cursor.moveToFirst();
+            record = deserializeRow(cursor);
+        }
+        catch (Exception ex) {
+            Log.w(LogTag, "Error finding record with id " + id.toString(), ex);
+        }
+        finally {
+            db.close();
+        }
+        return record;
     }
 
     //endregion

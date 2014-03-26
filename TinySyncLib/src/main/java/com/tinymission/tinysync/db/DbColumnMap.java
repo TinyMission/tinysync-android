@@ -1,6 +1,7 @@
 package com.tinymission.tinysync.db;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 
 import com.google.common.base.CaseFormat;
 import com.tinymission.tinysync.serializers.DbSerializer;
@@ -60,6 +61,10 @@ public class DbColumnMap {
 
     public void assignContentValue(DbModel record, ContentValues contentValues) throws IllegalAccessException {
         _serializer.serialize(record, _field, contentValues, _columnName);
+    }
+
+    public void deserializeColumn(Cursor cursor, DbModel model, int index) throws IllegalAccessException {
+        _serializer.deserializeColumn(cursor, model, index, _field);
     }
 
 }
