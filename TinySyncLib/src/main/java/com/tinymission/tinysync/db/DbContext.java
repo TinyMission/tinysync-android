@@ -15,19 +15,19 @@ import java.util.List;
  * Base class for database contexts.
  * A database context provides an interface for querying and storing model objects.
  * <p>
- * To implement a context for your application, simply extend DbContext and add public DbSet fields
+ * To implement a context for your application, simply extend DbContext and add public DbCollection fields
  * for each type of DbModel you're using.
  */
 public abstract class DbContext {
 
     private static final String LogTag = "tinysync.db.DbContext";
 
-    private ArrayList<DbSet> _sets = new ArrayList<DbSet>();
+    private ArrayList<DbCollection> _collections = new ArrayList<DbCollection>();
     /**
-     * @return the values of the DbSet fields in this context
+     * @return the values of the DbCollection fields in this context
      */
-    public List<DbSet> getDbSets() {
-        return _sets;
+    public List<DbCollection> getCollections() {
+        return _collections;
     }
 
     private String _databaseName;
@@ -69,11 +69,11 @@ public abstract class DbContext {
 
         try {
             for (Field field: getClass().getFields()) {
-                if (DbSet.class.isAssignableFrom(field.getType())) {
-                    DbSet set = (DbSet)field.get(this);
-                    set.setContext(this);
-                    Log.v(LogTag, "Added DbSet for " + set.getTableName() + " to context " + getClass().getSimpleName());
-                    _sets.add(set);
+                if (DbCollection.class.isAssignableFrom(field.getType())) {
+                    DbCollection collection = (DbCollection)field.get(this);
+                    collection.setContext(this);
+                    Log.v(LogTag, "Added DbCollection for " + collection.getTableName() + " to context " + getClass().getSimpleName());
+                    _collections.add(collection);
                 }
             }
         }
@@ -94,7 +94,6 @@ public abstract class DbContext {
         db.close();
     }
 
-
     boolean doesTableExist(SQLiteDatabase db, String tableName) {
         String query = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?;";
         Cursor cursor = db.rawQuery(query, new String[] {tableName});
@@ -108,10 +107,10 @@ public abstract class DbContext {
      * If no database is present, one will be created with the current model schema.
      */
     public void updateSchema(SQLiteDatabase db) {
-        for (DbSet set: _sets) {
-            String tableName = set.getTableName();
+        for (DbCollection collection: _collections) {
+            String tableName = collection.getTableName();
             if (!doesTableExist(db, tableName)) {
-                List<String> columnDefs = set.getColumnDefs();
+                List<String> columnDefs = collection.getColumnDefs();
                 String columnStatement = Joiner.on(", ").join(columnDefs);
                 Log.d(LogTag, "Table " + tableName + " does not exist, creating it with " + columnStatement);
                 db.execSQL("CREATE TABLE " + tableName + "(" + columnStatement + ")");
@@ -130,7 +129,7 @@ public abstract class DbContext {
     public void destroySchema() {
         initialize();
         SQLiteDatabase db = getWritableDatabase();
-        for (DbSet set: _sets) {
+        for (DbCollection set: _collections) {
             Log.d(LogTag, "Dropping table " + set.getTableName());
             db.execSQL("DROP TABLE IF EXISTS " + set.getTableName());
         }
@@ -155,12 +154,16 @@ public abstract class DbContext {
 
     //region Persistence
 
+    /**
+     * Saves all new or changed records that have been added to any of the context's DbSets.
+     * @return a SaveResult containing information about the save operation
+     */
     public SaveResult save() {
         initialize();
         SaveResult result = new SaveResult();
         SQLiteDatabase db = _openHelper.getWritableDatabase();
-        for (DbSet set: _sets) {
-            result.mergeFrom(set.save(this, db));
+        for (DbCollection collection: _collections) {
+            result.mergeFrom(collection.save(this, db));
         }
         db.close();
         return result;

@@ -6,6 +6,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.google.common.base.CaseFormat;
+import com.tinymission.tinysync.validation.FieldValidation;
+import com.tinymission.tinysync.validation.FieldValidator;
 import com.tinymission.tinysync.validation.RecordError;
 
 import java.lang.annotation.Annotation;
@@ -15,14 +17,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.LogRecord;
 
 /**
  * Provides an interface to query and persist records to a single table.
  */
-public class DbSet<T extends DbModel> {
-    private static final String LogTag = "tinysync.db.DbSet";
+public class DbCollection<T extends DbModel> {
+    private static final String LogTag = "tinysync.db.DbCollection";
 
-    public DbSet(Class<T> modelClass) {
+    public DbCollection(Class<T> modelClass) {
         _modelClass = modelClass;
         _tableName = tableizeClassName(modelClass.getSimpleName());
         Log.v(LogTag, "Parsing columns for table " + _tableName + " (" + modelClass.getName() + ")");
@@ -33,6 +36,16 @@ public class DbSet<T extends DbModel> {
                     DbColumnMap columnMap = new DbColumnMap((DbColumn)ann, field);
                     _columnMaps.put(columnMap.getColumnName(), columnMap);
                     Log.v(LogTag, "  " + field.getName() + " is a column named " + columnMap.getColumnName() + " of type " + field.getType());
+                }
+                else {
+                    Annotation[] metaAnns = ann.annotationType().getAnnotations();
+                    for (Annotation metaAnn: metaAnns) {
+                        if (metaAnn instanceof FieldValidation) {
+                            Class<?> validatorType = ((FieldValidation) metaAnn).value();
+                            addFieldValidator(field, ann, validatorType);
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -251,6 +264,39 @@ public class DbSet<T extends DbModel> {
             db.close();
         }
         return record;
+    }
+
+    //endregion
+
+
+    //region Validation
+
+    void addFieldValidator(Field field, Annotation annotation, Class<?> validatorType) {
+        Log.d(LogTag, "adding field validator: " + annotation + " of type " + validatorType);
+        try {
+            FieldValidator validator = (FieldValidator) validatorType.newInstance();
+            validator.setField(field);
+            validator.populateFromAnnotation(annotation);
+            _fieldValidators.add(validator);
+        }
+        catch (Exception ex) {
+            Log.w(LogTag, "Error making validator for " + annotation.annotationType().getSimpleName() + " of type " + validatorType.getSimpleName());
+        }
+    }
+
+    private List<FieldValidator> _fieldValidators = new ArrayList<FieldValidator>();
+
+    /**
+     * Performs all validations on the record (from annotations and the record's implementation of DbModel#onValidate)
+     * @param record
+     * @return true if there are no validation errors
+     */
+    public boolean validate(T record) {
+        record.clearErrors();
+        for (FieldValidator validator: _fieldValidators) {
+            validator.validate(this, record);
+        }
+        return !record.hasErrors();
     }
 
     //endregion

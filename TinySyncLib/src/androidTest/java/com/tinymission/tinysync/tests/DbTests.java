@@ -1,6 +1,5 @@
 package com.tinymission.tinysync.tests;
 
-import android.test.ActivityTestCase;
 import android.test.AndroidTestCase;
 import android.util.Log;
 
@@ -30,7 +29,7 @@ public class DbTests extends AndroidTestCase {
         Log.v("DbTests", "android context: " + getContext().getClass().getSimpleName());
         _context.initialize();
 
-        assertEquals(3, _context.getDbSets().size());
+        assertEquals(3, _context.getCollections().size());
 
 
         _context.touch();
@@ -80,6 +79,8 @@ public class DbTests extends AndroidTestCase {
         assertEquals(bob.name, bob2.name);
         assertTrue(bob2.isPersisted());
         assertEquals(DbModel.SyncState.infant, bob2.syncState);
+        assertEquals("Bob Johnson", bob2.name);
+        assertEquals(42, bob2.age);
         assertEquals(0, DateTime.now().getMillis()-bob2.createdAt.getMillis(), 50);
 
     }

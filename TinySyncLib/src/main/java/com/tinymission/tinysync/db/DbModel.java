@@ -6,7 +6,9 @@ import com.tinymission.tinysync.validation.RecordError;
 
 import org.joda.time.DateTime;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -45,11 +47,11 @@ public abstract class DbModel {
     }
 
 
-    //region Validation
+    //region ValidationAnnotation
 
-    private HashSet<RecordError> _errors = new HashSet<RecordError>();
+    private ArrayList<RecordError> _errors = new ArrayList<RecordError>();
 
-    public Set<RecordError> getErrors() {
+    public List<RecordError> getErrors() {
         return _errors;
     }
 
@@ -57,8 +59,20 @@ public abstract class DbModel {
         _errors.add(error);
     }
 
+    public void addError(String propertyName, String message) {
+        _errors.add(new RecordError(this, propertyName, message));
+    }
+
+    public void addError(String propertyName, Exception ex) {
+        _errors.add(new RecordError(this, propertyName, ex));
+    }
+
     public boolean hasErrors() {
         return _errors.size() > 0;
+    }
+
+    void clearErrors() {
+        _errors.clear();
     }
 
     public void logErrors() {
