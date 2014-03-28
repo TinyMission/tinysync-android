@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.google.common.base.CaseFormat;
+import com.tinymission.tinysync.query.Query;
 import com.tinymission.tinysync.validation.FieldValidation;
 import com.tinymission.tinysync.validation.FieldValidator;
 import com.tinymission.tinysync.validation.RecordError;
@@ -17,7 +18,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.LogRecord;
 
 /**
  * Provides an interface to query and persist records to a single table.
@@ -220,7 +220,7 @@ public class DbCollection<T extends DbModel> {
 
     //region Querying
 
-    private T deserializeRow(Cursor cursor) throws IllegalAccessException, InstantiationException {
+    public T deserializeRow(Cursor cursor) throws IllegalAccessException, InstantiationException {
         T record = _modelClass.newInstance();
         for (int i=0; i<_columnNames.length; i++) {
             String name = _columnNames[i];
@@ -295,8 +295,26 @@ public class DbCollection<T extends DbModel> {
         record.clearErrors();
         for (FieldValidator validator: _fieldValidators) {
             validator.validate(this, record);
+            record.onValidate();
         }
         return !record.hasErrors();
+    }
+
+    //endregion
+
+
+    //region Querying
+
+    public Query<T> where(String property, Object value) {
+        return new Query<T>(this).where(property, value);
+    }
+
+    public DbSet<T> runQuery(Query<T> query) {
+        SQLiteDatabase db = _context.getReadableDatabase();
+        readColumnNames(db);
+        Cursor cursor = db.query(_tableName, _columnNames, query.getSelection(), query.getSelectionArgs(), null, null, query.getOrderBy());
+//        db.close();
+        return new DbSet<T>(this, cursor);
     }
 
     //endregion

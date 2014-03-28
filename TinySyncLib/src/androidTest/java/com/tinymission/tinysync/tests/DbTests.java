@@ -26,7 +26,6 @@ public class DbTests extends AndroidTestCase {
 
     @Test
     public void testInitialization() {
-        Log.v("DbTests", "android context: " + getContext().getClass().getSimpleName());
         _context.initialize();
 
         assertEquals(3, _context.getCollections().size());

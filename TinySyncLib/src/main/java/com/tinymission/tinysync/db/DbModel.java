@@ -47,7 +47,7 @@ public abstract class DbModel {
     }
 
 
-    //region ValidationAnnotation
+    //region Validation
 
     private ArrayList<RecordError> _errors = new ArrayList<RecordError>();
 
@@ -86,6 +86,12 @@ public abstract class DbModel {
         }
     }
 
+    /**
+     * Subclasses can override this method to implement custom validation.
+     */
+    public void onValidate() {
+
+    }
 
     //endregion
 
