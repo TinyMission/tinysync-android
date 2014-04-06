@@ -3,7 +3,9 @@ package com.tinymission.tinysync.tests;
 import android.test.AndroidTestCase;
 
 import com.tinymission.tinysync.db.DbSet;
+import com.tinymission.tinysync.query.OrderBy;
 
+import org.joda.time.DateTime;
 import org.junit.Test;
 import models.Author;
 import models.MyContext;
@@ -40,6 +42,18 @@ public class QueryTests extends AndroidTestCase {
         assertEquals(1, authors.size());
         assertEquals(5, authors.first().age);
         assertEquals("Author 5", authors.first().name);
+
+        authors = _context.authors.where("age.gte", 5).orderBy("age", OrderBy.ASC).run();
+        assertEquals(5, authors.size());
+        assertEquals(5, authors.first().age);
+        assertEquals("Author 5", authors.first().name);
+
+        authors = _context.authors.orderBy("age", OrderBy.DESC).where("age neq", 5).run();
+        assertEquals(9, authors.size());
+        assertEquals(9, authors.first().age);
+
+        authors = _context.authors.where("createdAt.lt", DateTime.now()).run();
+        assertEquals(10, authors.size());
 
     }
 

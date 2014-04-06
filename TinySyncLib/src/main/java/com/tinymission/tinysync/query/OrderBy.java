@@ -5,14 +5,20 @@ package com.tinymission.tinysync.query;
  */
 public class OrderBy {
 
-    public enum Direction {
-        asc, desc
-    }
-
-    public OrderBy(String column, Direction direction) {
+    public OrderBy(String column, int direction) {
         _column = column;
         _direction = direction;
     }
+
+    /**
+     * Use for ascending sort direction.
+     */
+    public static final int ASC = 1;
+
+    /**
+     * Use for descending sort direction.
+     */
+    public static final int DESC = -1;
 
     private String _column;
 
@@ -20,14 +26,14 @@ public class OrderBy {
         return _column;
     }
 
-    private Direction _direction;
+    private int _direction;
 
-    public Direction getDirection() {
+    public int getDirection() {
         return _direction;
     }
 
     public String getDirectionString() {
-        if (_direction == Direction.asc)
+        if (_direction > 0)
             return "ASC";
         else
             return "DESC";

@@ -73,10 +73,10 @@ public class Query<T extends DbModel> {
     /**
      * Adds an OrderBy to the query, ordering the result by the given column and direction.
      * @param column the name of the column (or model field) to order by
-     * @param direction the direction of the ordering
+     * @param direction the order direction (>= 0 for ascending, < 0 for descending)
      * @return this
      */
-    public Query<T> orderBy(String column, OrderBy.Direction direction) {
+    public Query<T> orderBy(String column, int direction) {
         return addOrderBy(new OrderBy(column, direction));
     }
 
@@ -91,8 +91,11 @@ public class Query<T extends DbModel> {
     public String getSelection() {
         String[] statements = new String[_criteria.size()];
         for (int i=0; i<_criteria.size(); i++) {
-            String column = _criteria.get(i).getColumn();
-            statements[i] = column + " = ?";
+            Criterion criterion = _criteria.get(i);
+            String column = criterion.getColumn();
+            column = _collection.fieldToColumnName(column);
+            String operator = criterion.getOperator();
+            statements[i] = column + " " + operator + " ?";
         }
         return Joiner.on(" AND ").join(statements);
     }
@@ -113,6 +116,7 @@ public class Query<T extends DbModel> {
         for (int i=0; i<_orderBys.size(); i++) {
             OrderBy orderBy = _orderBys.get(i);
             String column = orderBy.getColumn();
+            column = _collection.fieldToColumnName(column);
             String direction = orderBy.getDirectionString();
             statements[i] = column + " " + direction;
         }

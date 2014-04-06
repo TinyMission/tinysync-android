@@ -81,6 +81,7 @@ public class DbTests extends AndroidTestCase {
         assertEquals("Bob Johnson", bob2.name);
         assertEquals(42, bob2.age);
         assertEquals(0, DateTime.now().getMillis()-bob2.createdAt.getMillis(), 50);
+        assertEquals(0, DateTime.now().getMillis()-bob2.updatedAt.getMillis(), 20);
 
     }
 

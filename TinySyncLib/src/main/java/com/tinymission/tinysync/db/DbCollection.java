@@ -6,10 +6,13 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.google.common.base.CaseFormat;
+import com.tinymission.tinysync.query.OrderBy;
 import com.tinymission.tinysync.query.Query;
 import com.tinymission.tinysync.validation.FieldValidation;
 import com.tinymission.tinysync.validation.FieldValidator;
 import com.tinymission.tinysync.validation.RecordError;
+
+import org.joda.time.DateTime;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -92,6 +95,18 @@ public class DbCollection<T extends DbModel> {
         return defs;
     }
 
+    /**
+     * @param fieldName the name of a model field
+     * @return the name of the corresponding database column
+     */
+    public String fieldToColumnName(String fieldName) {
+        for (DbColumnMap columnMap: _columnMaps.values()) {
+            if (columnMap.getField().getName().equals(fieldName))
+                return columnMap.getColumnName();
+        }
+        throw new RuntimeException("Invalid field name " + fieldName + " for model " + _modelClass.getSimpleName());
+    }
+
     private String[] _columnNames = null;
 
     private void readColumnNames(SQLiteDatabase db) {
@@ -152,6 +167,7 @@ public class DbCollection<T extends DbModel> {
 
     private boolean insertRecord(SQLiteDatabase db, T record) {
         try {
+            record.updatedAt = DateTime.now();
             ContentValues values = contentValuesForRecord(record);
             db.insertOrThrow(_tableName, null, values);
         }
@@ -163,6 +179,7 @@ public class DbCollection<T extends DbModel> {
 
     private boolean updateRecord(SQLiteDatabase db, T record) {
         try {
+            record.updatedAt = DateTime.now();
             ContentValues values = contentValuesForRecord(record);
             db.update(_tableName, values, "id = ?", new String[]{record.id.toString()});
         }
@@ -305,10 +322,31 @@ public class DbCollection<T extends DbModel> {
 
     //region Querying
 
+    /**
+     * Begins a query with a where statement.
+     * @param property the name of the property, with an optional operator suffix
+     * @param value the value to compare against
+     * @return a query object
+     */
     public Query<T> where(String property, Object value) {
         return new Query<T>(this).where(property, value);
     }
 
+    /**
+     * Begins a query with an orderBy statement
+     * @param column the name of the column (or model field) to order by
+     * @param direction the order direction (>= 0 for ascending, < 0 for descending)
+     * @return a query object
+     */
+    public Query<T> orderBy(String column, int direction) {
+        return new Query<T>(this).orderBy(column, direction);
+    }
+
+    /**
+     * Executes a query on this collection.
+     * @param query the query object to execute
+     * @return a set of the results
+     */
     public DbSet<T> runQuery(Query<T> query) {
         SQLiteDatabase db = _context.getReadableDatabase();
         readColumnNames(db);
