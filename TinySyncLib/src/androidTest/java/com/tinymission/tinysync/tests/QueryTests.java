@@ -35,6 +35,13 @@ public class QueryTests extends AndroidTestCase {
         _context.save();
     }
 
+    @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+
+        _context.close();
+    }
+
     @Test
     public void testWhere() {
 

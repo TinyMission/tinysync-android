@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.google.common.base.CaseFormat;
+import com.tinymission.tinysync.query.AssociationInclude;
 import com.tinymission.tinysync.query.OrderBy;
 import com.tinymission.tinysync.query.Query;
 import com.tinymission.tinysync.validation.FieldValidation;
@@ -203,6 +204,19 @@ public class DbCollection<T extends DbModel> {
         return null;
     }
 
+    /**
+     * Gets the direction of the given association, or throws an InvalidRelationshipException if the association doesn't exist.
+     * @param name
+     * @return
+     */
+    public AssociationInclude.Direction getAssociationDirection(String name) {
+        if (_belongsTos.containsKey(name))
+            return AssociationInclude.Direction.belongsTo;
+        else if (_hasManies.containsKey(name))
+            return AssociationInclude.Direction.hasMany;
+        throw new DbContext.InvalidRelationshipException("has-many or belongs-to", name);
+    }
+
     //endregion
 
 
@@ -373,9 +387,6 @@ public class DbCollection<T extends DbModel> {
         catch (Exception ex) {
             Log.w(LogTag, "Error finding record with id " + id.toString(), ex);
         }
-        finally {
-            db.close();
-        }
         return record;
     }
 
@@ -447,7 +458,6 @@ public class DbCollection<T extends DbModel> {
         SQLiteDatabase db = _context.getReadableDatabase();
         readColumnNames(db);
         Cursor cursor = db.query(_tableName, _columnNames, query.getSelection(), query.getSelectionArgs(), null, null, query.getOrderBy());
-//        db.close();
         return new DbSet<T>(this, cursor);
     }
 

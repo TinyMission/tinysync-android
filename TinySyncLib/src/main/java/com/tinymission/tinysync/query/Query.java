@@ -9,6 +9,7 @@ import com.tinymission.tinysync.db.DbModel;
 import com.tinymission.tinysync.db.DbSet;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Encapsulates all information about a query and provides a fluent API for creating them.
@@ -78,6 +79,40 @@ public class Query<T extends DbModel> {
      */
     public Query<T> orderBy(String column, int direction) {
         return addOrderBy(new OrderBy(column, direction));
+    }
+
+    //endregion
+
+
+    //region Includes
+
+    private ArrayList<AssociationInclude> _includes = new ArrayList<AssociationInclude>();
+
+    /**
+     * @return all association includes added to this query.
+     */
+    public List<AssociationInclude> getIncludes() {
+        return _includes;
+    }
+
+    /**
+     * Tells the collection to include the given association in the query results.
+     * @param include the association include object
+     * @return this
+     */
+    public Query<T> addInclude(AssociationInclude include) {
+        include.setDirection(_collection.getAssociationDirection(include.getName()));
+        _includes.add(include);
+        return this;
+    }
+
+    /**
+     * Tells the collection to include the given association in the query results.
+     * @param name the name of a has-many or belongs-to association
+     * @return this
+     */
+    public Query<T> include(String name) {
+        return addInclude(new AssociationInclude(name));
     }
 
     //endregion

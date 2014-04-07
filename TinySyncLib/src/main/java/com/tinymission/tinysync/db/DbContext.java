@@ -153,12 +153,36 @@ public abstract class DbContext {
 
     //region Connections
 
+    private SQLiteDatabase _readableDb;
+
     public SQLiteDatabase getReadableDatabase() {
-        return _openHelper.getReadableDatabase();
+        if (_readableDb == null)
+            _readableDb = _openHelper.getReadableDatabase();
+        return _readableDb;
     }
 
+    private SQLiteDatabase _writableDb;
+
     public SQLiteDatabase getWritableDatabase() {
-        return _openHelper.getWritableDatabase();
+        if (_writableDb == null)
+            _writableDb = _openHelper.getWritableDatabase();
+        return _writableDb;
+    }
+
+    /**
+     * Closes any open database connections.
+     * This should be called when the context is no longer needed.
+     * It is safe to call this method multiple times.
+     */
+    public void close() {
+        if (_readableDb != null) {
+            _readableDb.close();
+            _readableDb = null;
+        }
+        if (_writableDb != null) {
+            _writableDb.close();
+            _writableDb = null;
+        }
     }
 
     //endregion
