@@ -1,9 +1,9 @@
 package com.tinymission.tinysync.tests;
 
 import android.test.AndroidTestCase;
-import android.util.Log;
 
 import com.tinymission.tinysync.db.DbModel;
+import com.tinymission.tinysync.db.DbSet;
 import com.tinymission.tinysync.db.SaveResult;
 
 import org.joda.time.DateTime;
@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import models.Author;
 import models.MyContext;
+import models.Post;
 
 public class DbTests extends AndroidTestCase {
 
@@ -25,11 +26,15 @@ public class DbTests extends AndroidTestCase {
     }
 
     @Test
-    public void testInitialization() {
+    public void testSchema() {
         _context.initialize();
 
         assertEquals(3, _context.getCollections().size());
 
+        assertEquals(1, _context.authors.getHasManies().size());
+        assertEquals("author_id", _context.authors.getHasManies().values().iterator().next().getForeignKey());
+        assertEquals(1, _context.posts.getBelongsTos().size());
+        assertEquals("author_id", _context.posts.getBelongsTos().values().iterator().next().getColumnName());
 
         _context.touch();
     }
@@ -80,9 +85,48 @@ public class DbTests extends AndroidTestCase {
         assertEquals(DbModel.SyncState.infant, bob2.syncState);
         assertEquals("Bob Johnson", bob2.name);
         assertEquals(42, bob2.age);
-        assertEquals(0, DateTime.now().getMillis()-bob2.createdAt.getMillis(), 50);
-        assertEquals(0, DateTime.now().getMillis()-bob2.updatedAt.getMillis(), 20);
+        assertEquals(0, DateTime.now().getMillis() - bob2.createdAt.getMillis(), 50);
+        assertEquals(0, DateTime.now().getMillis() - bob2.updatedAt.getMillis(), 20);
 
     }
 
+    @Test
+    public void testBelongsTo() {
+        Author bob = new Author();
+        bob.name = "Bob Johnson";
+        _context.authors.add(bob);
+        _context.save();
+
+        Post firstPost = new Post();
+        firstPost.author.setValue(bob);
+        firstPost.title = "My First Post";
+        _context.posts.add(firstPost);
+        _context.save();
+
+        Post readPost = _context.posts.find(firstPost.id);
+        assertEquals(bob.id, readPost.author.getKey());
+        Author bob2 = readPost.author.getValue(_context);
+        assertEquals(bob.id, bob2.id);
+    }
+
+    @Test
+    public void testHasMany() {
+        Author bob = new Author();
+        bob.name = "Bob Johnson";
+        _context.authors.add(bob);
+
+        int numPosts = 4;
+        for (int i=0; i<numPosts; i++) {
+            Post post = new Post();
+            post.author.setValue(bob);
+            post.title = "Post " + i;
+            _context.posts.add(post);
+        }
+
+        _context.save();
+
+        DbSet<Post> posts = bob.posts.getValues(_context);
+        assertEquals(numPosts, posts.size());
+
+    }
 }

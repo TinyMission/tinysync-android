@@ -1,5 +1,6 @@
 package models;
 
+import com.tinymission.tinysync.db.DbBelongsTo;
 import com.tinymission.tinysync.db.DbColumn;
 import com.tinymission.tinysync.db.DbModel;
 import com.tinymission.tinysync.db.ObjectId;
@@ -23,8 +24,7 @@ public class Post extends DbModel {
     @DbColumn()
     public int points;
 
-    @DbColumn()
-    public ObjectId authorId;
+    public final DbBelongsTo<Author> author = new DbBelongsTo<Author>(this, Author.class);
 
     @DbColumn()
     public float averageRating;

@@ -136,6 +136,18 @@ public abstract class DbContext {
         db.close();
     }
 
+    /**
+     * @param modelClass the model class to get the collection for
+     * @return the collection corresponding to the model class
+     */
+    public <T extends DbModel> DbCollection<T> getCollection(Class<T> modelClass) {
+        for (DbCollection<?> collection: _collections) {
+            if (collection.getModelClass().equals(modelClass))
+                return (DbCollection<T>) collection;
+        }
+        throw new InvalidCollectionException(modelClass.getSimpleName());
+    }
+
     //endregion
 
 
@@ -171,4 +183,20 @@ public abstract class DbContext {
 
     //endregion
 
+
+    //region Exceptions
+
+    public static class InvalidCollectionException extends RuntimeException {
+        public InvalidCollectionException(String collectionName) {
+            super("Collection " + collectionName + " does not exist in this context");
+        }
+    }
+
+    public static class InvalidRelationshipException extends RuntimeException {
+        public InvalidRelationshipException(String rel, String name) {
+            super("No " + rel + " relationship found for " + name);
+        }
+    }
+
+    //endregion
 }

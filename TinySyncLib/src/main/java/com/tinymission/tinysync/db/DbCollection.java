@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -33,28 +34,25 @@ public class DbCollection<T extends DbModel> {
         _tableName = tableizeClassName(modelClass.getSimpleName());
         Log.v(LogTag, "Parsing columns for table " + _tableName + " (" + modelClass.getName() + ")");
 
-        for (Field field: modelClass.getFields()) {
-            for (Annotation ann: field.getDeclaredAnnotations()) {
-                if (ann instanceof DbColumn) {
-                    DbColumnMap columnMap = new DbColumnMap((DbColumn)ann, field);
-                    _columnMaps.put(columnMap.getColumnName(), columnMap);
-                    Log.v(LogTag, "  " + field.getName() + " is a column named " + columnMap.getColumnName() + " of type " + field.getType());
-                }
-                else {
-                    Annotation[] metaAnns = ann.annotationType().getAnnotations();
-                    for (Annotation metaAnn: metaAnns) {
-                        if (metaAnn instanceof FieldValidation) {
-                            Class<?> validatorType = ((FieldValidation) metaAnn).value();
-                            addFieldValidator(field, ann, validatorType);
-                            break;
-                        }
-                    }
-                }
+        try {
+            T template = modelClass.newInstance();
+            for (Field field : modelClass.getFields()) {
+                parseField(template, field);
             }
+        }
+        catch (InstantiationException ex) {
+            throw new RuntimeException("Error parsing collection " + modelClass.getSimpleName() + ": " + ex.getMessage());
+        }
+        catch (IllegalAccessException ex) {
+            throw new RuntimeException("Error parsing collection " + modelClass.getSimpleName() + ": " + ex.getMessage());
         }
     }
 
     private Class<T> _modelClass;
+
+    public Class<T> getModelClass() {
+        return _modelClass;
+    }
 
     private DbContext _context;
 
@@ -62,8 +60,37 @@ public class DbCollection<T extends DbModel> {
         _context = context;
     }
 
+    private void parseField(T template, Field field) {
+        if (field.getType().isAssignableFrom(DbHasMany.class)) {
+            DbHasManyMeta meta = new DbHasManyMeta(field, template);
+            _hasManies.put(field.getName(), meta);
+        }
+        else if (field.getType().isAssignableFrom(DbBelongsTo.class)) {
+            DbBelongsToMeta meta = new DbBelongsToMeta(field, template);
+            _belongsTos.put(field.getName(), meta);
+        }
+        for (Annotation ann: field.getDeclaredAnnotations()) {
+            Log.v(LogTag, "Annotation " + ann.annotationType() + " on " + _modelClass.getSimpleName() + ":" + field.getName());
+            if (ann instanceof DbColumn) {
+                DbColumnMap columnMap = new DbColumnMap((DbColumn)ann, field);
+                _columnMaps.put(columnMap.getColumnName(), columnMap);
+                Log.v(LogTag, "  " + field.getName() + " is a column named " + columnMap.getColumnName() + " of type " + field.getType());
+            }
+            else {
+                Annotation[] metaAnns = ann.annotationType().getAnnotations();
+                for (Annotation metaAnn: metaAnns) {
+                    if (metaAnn instanceof FieldValidation) {
+                        Class<?> validatorType = ((FieldValidation) metaAnn).value();
+                        addFieldValidator(field, ann, validatorType);
+                        break;
+                    }
+                }
+            }
+        }
+    }
 
-    //region Schema
+
+    //region Columns
 
     private String _tableName;
     /**
@@ -92,6 +119,9 @@ public class DbCollection<T extends DbModel> {
         for (DbColumnMap columnMap: _columnMaps.values()) {
             defs.add(columnMap.getColumnDef());
         }
+        for (DbBelongsToMeta meta: _belongsTos.values()) {
+            defs.add(meta.getColumnDef());
+        }
         return defs;
     }
 
@@ -103,6 +133,10 @@ public class DbCollection<T extends DbModel> {
         for (DbColumnMap columnMap: _columnMaps.values()) {
             if (columnMap.getField().getName().equals(fieldName))
                 return columnMap.getColumnName();
+        }
+        for (DbBelongsToMeta belongsTo: _belongsTos.values()) {
+            if (belongsTo.getColumnName().equals(fieldName))
+                return fieldName;
         }
         throw new RuntimeException("Invalid field name " + fieldName + " for model " + _modelClass.getSimpleName());
     }
@@ -117,6 +151,66 @@ public class DbCollection<T extends DbModel> {
             names.add(ti.getString(1));
         }
         _columnNames = names.toArray(new String[names.size()]);
+    }
+
+    //endregion
+
+
+    //region Associations
+
+    private HashMap<String, DbHasManyMeta> _hasManies = new HashMap<String,DbHasManyMeta>();
+
+    public Map<String, DbHasManyMeta> getHasManies() {
+        return _hasManies;
+    }
+
+    /**
+     * @param modelClass the class of the foreign model
+     * @return the meta data for the relationship
+     */
+    public DbHasManyMeta getHasManyMeta(Class<?> modelClass) {
+        for (DbHasManyMeta meta: _hasManies.values()) {
+            if (meta.getModelClass().equals(modelClass))
+                return meta;
+        }
+        throw new DbContext.InvalidRelationshipException("has-many", modelClass.getSimpleName());
+    }
+
+    private HashMap<String, DbBelongsToMeta> _belongsTos = new HashMap<String, DbBelongsToMeta>();
+
+    public Map<String, DbBelongsToMeta> getBelongsTos() {
+        return _belongsTos;
+    }
+
+    /**
+     * @param modelClass the class of the foreign model
+     * @return the meta data for the relationship
+     */
+    public DbBelongsToMeta getBelongsToMeta(Class<?> modelClass) {
+        for (DbBelongsToMeta meta: _belongsTos.values()) {
+            if (meta.getModelClass().equals(modelClass))
+                return meta;
+        }
+        throw new DbContext.InvalidRelationshipException("belongs-to", modelClass.getSimpleName());
+    }
+
+
+    private DbBelongsToMeta getBelongsToByColumn(String columnName) {
+        for (DbBelongsToMeta belongsTo: _belongsTos.values()) {
+            if (belongsTo.getColumnName().equals(columnName))
+                return belongsTo;
+        }
+        return null;
+    }
+
+    /**
+     * Traverses the has-many associations and connects them to the corresponding belongs-to associations in the same context.
+     */
+    public void connectHasManies() {
+//        for (DbAssociation association: _hasManies) {
+//            DbCollection otherCollection = _context.getCollection(association.getOneField().getClass());
+//
+//        }
     }
 
     //endregion
@@ -160,6 +254,14 @@ public class DbCollection<T extends DbModel> {
             }
             catch (Exception ex) {
                 record.addError(new RecordError(record, columnMap.getColumnName(), ex));
+            }
+        }
+        for (DbBelongsToMeta belongsTo: _belongsTos.values()) {
+            try {
+                belongsTo.assignContentValue(record, values);
+            }
+            catch (Exception ex) {
+                record.addError(new RecordError(record, belongsTo.getColumnName(), ex));
             }
         }
         return values;
@@ -244,6 +346,10 @@ public class DbCollection<T extends DbModel> {
             DbColumnMap columnMap = _columnMaps.get(name);
             if (columnMap != null) {
                 columnMap.deserializeColumn(cursor, record, i);
+            }
+            DbBelongsToMeta belongsTo = getBelongsToByColumn(name);
+            if (belongsTo != null) {
+                belongsTo.deserializeColumn(cursor, record, i);
             }
         }
         record._persisted = true;
@@ -356,4 +462,6 @@ public class DbCollection<T extends DbModel> {
     }
 
     //endregion
+
+
 }
