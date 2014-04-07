@@ -8,7 +8,7 @@ Each library uses a set of conventions to establish a common synchronization met
 
 ## Installation
 
-At this point, you have to check out the code from Github and manually add it to your Android application as a library project.
+At this point, you have to check out the code from GitHub and manually add it to your Android application as a library project.
 We'll add it to maven once it's more feature complete.
 
 
@@ -50,17 +50,18 @@ Fields that are marked with the *@DbColumn* annotation are mapped to database co
             junior, senior
         }
 
-        @DbColumn()
+        @DbColumn
         @ValidateNotNull
         public String name;
 
-        @DbColumn()
+        @DbColumn
         public int age;
 
-        @DbColumn()
+        @DbColumn
         public Seniority seniority;
 
-        public final DbHasMany<Post> posts = new DbHasMany<Post>(this, Post.class);
+        public final DbHasMany<Post> posts =
+            new DbHasMany<Post>(this, Post.class);
     }
 
     public class Post extends DbModel {
@@ -77,7 +78,8 @@ Fields that are marked with the *@DbColumn* annotation are mapped to database co
         @DbColumn
         public int points;
 
-        public final DbBelongsTo<Author> author = new DbBelongsTo<Author>(this, Author.class);
+        public final DbBelongsTo<Author> author =
+            new DbBelongsTo<Author>(this, Author.class);
 
         @DbColumn
         public float averageRating;
@@ -96,11 +98,14 @@ A database context extends *DbContext* and has public fields containing a *DbCol
 ```java
     public class MyContext extends DbContext {
 
-        public final DbCollection<Author> authors = new DbCollection<Author>(Author.class);
+        public final DbCollection<Author> authors =
+            new DbCollection<Author>(Author.class);
 
-        public final DbCollection<Post> posts = new DbCollection<Post>(Post.class);
+        public final DbCollection<Post> posts =
+            new DbCollection<Post>(Post.class);
 
-        public final DbCollection<Comment> comments = new DbCollection<Comment>(Comment.class);
+        public final DbCollection<Comment> comments =
+            new DbCollection<Comment>(Comment.class);
 
     }
 ```
@@ -114,7 +119,10 @@ TinySync supports a 'fluent' query interface on the *DbCollection* class.
 Queries are constructed by chaining calls to *where*, *orderBy*, and *include* on a collection:
 
 ```java
-    DbSet<Author> youngAuthors = context.authors.where("age.lt", 30).orderBy("createdAt").run();
+    DbSet<Author> youngAuthors = context.authors
+                                    .where("age.lt", 30)
+                                    .orderBy("createdAt")
+                                    .run();
 ```
 
 The results of a query are stored in a *DbSet* object, which will lazily load the resulting rows into model objects as you use them.
