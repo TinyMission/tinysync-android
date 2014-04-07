@@ -166,6 +166,18 @@ public class DbCollection<T extends DbModel> {
     }
 
     /**
+     * Gets has-many association meta data by name.
+     * @param name the name of the association field
+     * @return
+     */
+    public DbHasManyMeta getHasMany(String name) {
+        DbHasManyMeta meta = _hasManies.get(name);
+        if (meta == null)
+            throw new DbContext.InvalidRelationshipException("has-many", name);
+        return meta;
+    }
+
+    /**
      * @param modelClass the class of the foreign model
      * @return the meta data for the relationship
      */
@@ -181,6 +193,18 @@ public class DbCollection<T extends DbModel> {
 
     public Map<String, DbBelongsToMeta> getBelongsTos() {
         return _belongsTos;
+    }
+
+    /**
+     * Gets belongs-to association meta data by name.
+     * @param name the name of the association field
+     * @return
+     */
+    public DbBelongsToMeta getBelongsTo(String name) {
+        DbBelongsToMeta meta = _belongsTos.get(name);
+        if (meta == null)
+            throw new DbContext.InvalidRelationshipException("belongs-to", name);
+        return meta;
     }
 
     /**
@@ -276,6 +300,7 @@ public class DbCollection<T extends DbModel> {
             record.updatedAt = DateTime.now();
             ContentValues values = contentValuesForRecord(record);
             db.insertOrThrow(_tableName, null, values);
+            cacheRecord(record);
         }
         catch (Exception ex) {
             record.addError(new RecordError(record, null, ex));
@@ -288,6 +313,7 @@ public class DbCollection<T extends DbModel> {
             record.updatedAt = DateTime.now();
             ContentValues values = contentValuesForRecord(record);
             db.update(_tableName, values, "id = ?", new String[]{record.id.toString()});
+            cacheRecord(record);
         }
         catch (Exception ex) {
             record.addError(new RecordError(record, null, ex));
@@ -343,7 +369,15 @@ public class DbCollection<T extends DbModel> {
 
     //region Querying
 
-    public T deserializeRow(Cursor cursor) throws IllegalAccessException, InstantiationException {
+    /**
+     * Deserializes a row from a query into a record object.
+     * @param cursor the cursor at the current position to deserialize
+     * @param includes a list of included associations to deserialize as well
+     * @return the deserialized record
+     * @throws IllegalAccessException
+     * @throws InstantiationException
+     */
+    public T deserializeRow(Cursor cursor, Set<AssociationInclude> includes) throws IllegalAccessException, InstantiationException {
         T record = _modelClass.newInstance();
         for (int i=0; i<_columnNames.length; i++) {
             String name = _columnNames[i];
@@ -357,6 +391,23 @@ public class DbCollection<T extends DbModel> {
             }
         }
         record._persisted = true;
+
+        // deserialize the associations
+        if (includes != null) {
+            for (AssociationInclude include: includes) {
+                if (include.getDirection() == AssociationInclude.Direction.hasMany) {
+                    DbHasManyMeta meta = getHasMany(include.getName());
+                    DbHasMany hasMany = (DbHasMany)meta.getField().get(record);
+                    hasMany.getValues(_context);
+                }
+                else if (include.getDirection() == AssociationInclude.Direction.belongsTo) {
+                    DbBelongsToMeta meta = getBelongsTo(include.getName());
+                    DbBelongsTo belongsTo = (DbBelongsTo) meta.getField().get(record);
+                    belongsTo.getValue(_context);
+                }
+            }
+        }
+
         return record;
     }
 
@@ -368,12 +419,13 @@ public class DbCollection<T extends DbModel> {
         Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + _tableName, null);
         cursor.moveToFirst();
         long count = cursor.getLong(0);
-        db.close();
         return count;
     }
 
     /**
      * Look up a record by id.
+     * This always retrieves the record from the database - it does not use the cache.
+     * If you'd like to get a potentially cached value, use cachedFind() instead.
      */
     public T find(ObjectId id) {
         SQLiteDatabase db = _context.getReadableDatabase();
@@ -382,7 +434,8 @@ public class DbCollection<T extends DbModel> {
         try {
             Cursor cursor = db.query(_tableName, _columnNames, "id = ?", new String[] {id.toString()}, null, null, null, "1");
             cursor.moveToFirst();
-            record = deserializeRow(cursor);
+            record = deserializeRow(cursor, null);
+            cacheRecord(record);
         }
         catch (Exception ex) {
             Log.w(LogTag, "Error finding record with id " + id.toString(), ex);
@@ -458,7 +511,40 @@ public class DbCollection<T extends DbModel> {
         SQLiteDatabase db = _context.getReadableDatabase();
         readColumnNames(db);
         Cursor cursor = db.query(_tableName, _columnNames, query.getSelection(), query.getSelectionArgs(), null, null, query.getOrderBy());
-        return new DbSet<T>(this, cursor);
+        return new DbSet<T>(this, cursor, query.getIncludes());
+    }
+
+    //endregion
+
+
+    //region Cache
+
+    private HashMap<ObjectId, T> _cache = new HashMap<ObjectId, T>();
+
+    /**
+     * Clears any objects held in the cache, forcing them to be reloaded if requested again.
+     */
+    public void clearCache() {
+        _cache.clear();
+    }
+
+    /**
+     * Inserts the record into the cache so it can be used later by methods like cachedFind().
+     * @param record
+     */
+    public void cacheRecord(T record) {
+        _cache.put(record.id, record);
+    }
+
+    /**
+     * Attempts to find a record in the cache, or returns a fresh record if it isn't cached.
+     * @param id
+     * @return
+     */
+    public T cachedFind(ObjectId id) {
+        if (_cache.containsKey(id))
+            return _cache.get(id);
+        return find(id);
     }
 
     //endregion

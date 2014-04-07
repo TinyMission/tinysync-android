@@ -9,6 +9,7 @@ import org.joda.time.DateTime;
 import org.junit.Test;
 import models.Author;
 import models.MyContext;
+import models.Post;
 
 /**
  * Tests the query interface.
@@ -61,6 +62,23 @@ public class QueryTests extends AndroidTestCase {
 
         authors = _context.authors.where("createdAt.lt", DateTime.now()).run();
         assertEquals(10, authors.size());
+
+    }
+
+    @Test
+    public void testIncludes() {
+        final int numPosts = 10;
+        Author author = _context.authors.where("name", "Author 4").run().first();
+        for (int i=0; i<numPosts; i++) {
+            Post post = new Post();
+            post.title = "Post " + i;
+            post.author.setValue(author);
+            _context.posts.add(post);
+        }
+        _context.save();
+
+        author = _context.authors.where("name", "Author 4").include("posts").run().first();
+        assertEquals(numPosts, author.posts.getCachedValues().size());
 
     }
 

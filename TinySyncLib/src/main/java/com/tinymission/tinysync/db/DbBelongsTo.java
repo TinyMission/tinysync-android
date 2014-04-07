@@ -34,29 +34,14 @@ public class DbBelongsTo<T extends DbModel> {
         _key = key;
     }
 
-    private T _cachedValue;
-
-    /**
-     * Gets the last value that was retrieved from the database (or assigned directly).
-     * This could be null if the value hasn't been populated, so use getValue(DbContext)
-     * if you're not sure there's a value there.
-     * @return
-     */
-    public T getCachedValue() {
-        return _cachedValue;
-    }
-
     /**
      * Gets the value of the relationship (either cached or directly from the database).
      * @param context the context used to get the value if it isn't in the cache
      * @return
      */
     public T getValue(DbContext context) {
-        if (_cachedValue != null)
-            return _cachedValue;
         DbCollection<T> collection = context.getCollection(_modelClass);
-        _cachedValue = collection.find(_key);
-        return _cachedValue;
+        return collection.cachedFind(_key);
     }
 
     /**
@@ -64,7 +49,6 @@ public class DbBelongsTo<T extends DbModel> {
      * @param value
      */
     public void setValue(T value) {
-        _cachedValue = value;
         _key = value.id;
     }
 }

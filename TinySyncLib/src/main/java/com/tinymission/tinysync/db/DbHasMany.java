@@ -21,6 +21,16 @@ public class DbHasMany<T extends DbModel> {
 
     private DbSet<T> _cachedValues;
 
+    /**
+     * Gets the previously retrieved values from the cache.
+     * This will not touch the database, and will return null if the values
+     * haven't been retrieved and this association wasn't included in the query.
+     * @return
+     */
+    public DbSet<T> getCachedValues() {
+        return _cachedValues;
+    }
+
     public DbSet<T> getValues(DbContext context) {
         if (_cachedValues != null)
             return _cachedValues;

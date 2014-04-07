@@ -33,6 +33,10 @@ public class DbHasManyMeta {
 
     private Field _field;
 
+    public Field getField() {
+        return _field;
+    }
+
     private Class<?> _modelClass;
 
     public Class<?> getModelClass() {

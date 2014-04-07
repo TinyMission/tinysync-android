@@ -201,7 +201,6 @@ public abstract class DbContext {
         for (DbCollection collection: _collections) {
             result.mergeFrom(collection.save(this, db));
         }
-        db.close();
         return result;
     }
 

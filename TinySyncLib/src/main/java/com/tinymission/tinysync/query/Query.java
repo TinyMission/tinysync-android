@@ -9,7 +9,9 @@ import com.tinymission.tinysync.db.DbModel;
 import com.tinymission.tinysync.db.DbSet;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Encapsulates all information about a query and provides a fluent API for creating them.
@@ -86,12 +88,12 @@ public class Query<T extends DbModel> {
 
     //region Includes
 
-    private ArrayList<AssociationInclude> _includes = new ArrayList<AssociationInclude>();
+    private HashSet<AssociationInclude> _includes = new HashSet<AssociationInclude>();
 
     /**
      * @return all association includes added to this query.
      */
-    public List<AssociationInclude> getIncludes() {
+    public Set<AssociationInclude> getIncludes() {
         return _includes;
     }
 

@@ -3,7 +3,10 @@ package com.tinymission.tinysync.db;
 import android.database.Cursor;
 import android.util.Log;
 
+import com.tinymission.tinysync.query.AssociationInclude;
+
 import java.util.ArrayList;
+import java.util.Set;
 
 /**
  * A readonly set of DbModel objects.
@@ -14,13 +17,15 @@ public class DbSet<T extends DbModel> implements Iterable<T> {
 
     DbCollection<T> _collection;
     ArrayList<T> _records = null;
+    Set<AssociationInclude> _includes;
     Cursor _cursor;
     int _size = 0;
     int _computedIndex = -1;
 
-    public DbSet(DbCollection<T> collection, Cursor cursor) {
+    public DbSet(DbCollection<T> collection, Cursor cursor, Set<AssociationInclude> includes) {
         _collection = collection;
         _cursor = cursor;
+        _includes = includes;
         cursor.moveToFirst();
         _size = cursor.getCount();
         _records = new ArrayList<T>(_size);
@@ -43,7 +48,8 @@ public class DbSet<T extends DbModel> implements Iterable<T> {
         while (_computedIndex < i) {
             try {
                 _computedIndex++;
-                T record = _collection.deserializeRow(_cursor);
+                T record = _collection.deserializeRow(_cursor, _includes);
+                _collection.cacheRecord(record);
                 _records.add(_computedIndex, record);
             }
             catch (Exception ex) {
