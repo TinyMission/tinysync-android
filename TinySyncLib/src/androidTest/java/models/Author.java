@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class Author extends DbModel {
 
-    public enum Seniority {
+    public static enum Seniority {
         junior, senior
     }
 

@@ -76,6 +76,7 @@ public class DbTests extends AndroidTestCase {
         Author bob = new Author();
         bob.name = "Bob Johnson";
         bob.age = 42;
+        bob.seniority = Author.Seniority.senior;
         _context.authors.add(bob);
         _context.save();
 
@@ -85,6 +86,7 @@ public class DbTests extends AndroidTestCase {
         assertEquals(DbModel.SyncState.infant, bob2.syncState);
         assertEquals("Bob Johnson", bob2.name);
         assertEquals(42, bob2.age);
+        assertEquals(Author.Seniority.senior, bob2.seniority);
         assertEquals(0, DateTime.now().getMillis() - bob2.createdAt.getMillis(), 50);
         assertEquals(0, DateTime.now().getMillis() - bob2.updatedAt.getMillis(), 20);
 

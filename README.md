@@ -46,12 +46,12 @@ Fields that are marked with the *@DbColumn* annotation are mapped to database co
 
 ```java
     public class Author extends DbModel {
-
-        public enum Seniority {
+        public static enum Seniority {
             junior, senior
         }
 
         @DbColumn()
+        @ValidateNotNull
         public String name;
 
         @DbColumn()
@@ -59,29 +59,65 @@ Fields that are marked with the *@DbColumn* annotation are mapped to database co
 
         @DbColumn()
         public Seniority seniority;
+
+        public final DbHasMany<Post> posts = new DbHasMany<Post>(this, Post.class);
+    }
+
+    public class Post extends DbModel {
+        @DbColumn
+        @ValidateNotNull
+        public String title;
+
+        @DbColumn
+        public DateTime postedAt;
+
+        @DbColumn
+        public String body;
+
+        @DbColumn
+        public int points;
+
+        public final DbBelongsTo<Author> author = new DbBelongsTo<Author>(this, Author.class);
+
+        @DbColumn
+        public float averageRating;
     }
 ```
+
+One-Many relationships are described with the *DbBelongsTo* and *DbHasMany* classes.
+By making public fields with these classes in your models, TinySync will handle the querying, caching, and persistence of the relationship for you.
 
 
 ### Database Context
 
 In order to query or persist model objects, you need to create a database context.
-A database context extends *DbContext* and has public fields containing a *DbSet* for each model type:
+A database context extends *DbContext* and has public fields containing a *DbCollection* for each model type:
 
 ```java
     public class MyContext extends DbContext {
 
-        public final DbSet<Author> authors = new DbSet<Author>(Author.class);
+        public final DbCollection<Author> authors = new DbCollection<Author>(Author.class);
 
-        public final DbSet<Post> posts = new DbSet<Post>(Post.class);
+        public final DbCollection<Post> posts = new DbCollection<Post>(Post.class);
 
-        public final DbSet<Comment> comments = new DbSet<Comment>(Comment.class);
+        public final DbCollection<Comment> comments = new DbCollection<Comment>(Comment.class);
 
     }
 ```
 
-The *DbSet* objects form the foundation of the query and persistence interface.
+The *DbCollection* objects form the foundation of the query and persistence interface.
 
+
+### Querying
+
+TinySync supports a 'fluent' query interface on the *DbCollection* class.
+Queries are constructed by chaining calls to *where*, *orderBy*, and *include* on a collection:
+
+```java
+    DbSet<Author> youngAuthors = context.authors.where("age.lt", 30).orderBy("createdAt").run();
+```
+
+The results of a query are stored in a *DbSet* object, which will lazily load the resulting rows into model objects as you use them.
 
 
 ### Sync Requests and Responses

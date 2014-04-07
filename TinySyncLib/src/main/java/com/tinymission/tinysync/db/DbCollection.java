@@ -203,16 +203,6 @@ public class DbCollection<T extends DbModel> {
         return null;
     }
 
-    /**
-     * Traverses the has-many associations and connects them to the corresponding belongs-to associations in the same context.
-     */
-    public void connectHasManies() {
-//        for (DbAssociation association: _hasManies) {
-//            DbCollection otherCollection = _context.getCollection(association.getOneField().getClass());
-//
-//        }
-    }
-
     //endregion
 
 
