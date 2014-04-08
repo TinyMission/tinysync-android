@@ -92,12 +92,18 @@ public class QueryTests extends AndroidTestCase {
 
     @Test
     public void testJson() {
-        Query<Author> query = Query.fromJson(_context.authors, "{\"where\": {\"name\": \"Author 5\"}}");
+        final String json = "{\"where\": {\"name\": \"Author 5\"}, \"order\": {\"name\": \"asc\"}}";
+
+        Query<Author> query = Query.fromJson(_context.authors, json);
         DbSet<Author> authors = _context.authors.runQuery(query);
+
         assertEquals(1, authors.size());
         assertEquals(5, authors.first().age);
         assertEquals("Author 5", authors.first().name);
 
+        String json2 = query.toJson();
+        assertEquals(json.toLowerCase().replaceAll("\\s+",""),
+                json2.toLowerCase().replaceAll("\\s+",""));
     }
 
 

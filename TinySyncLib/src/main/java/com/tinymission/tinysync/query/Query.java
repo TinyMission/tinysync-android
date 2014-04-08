@@ -253,6 +253,36 @@ public class Query<T extends DbModel> {
         return query;
     }
 
+    /**
+     * Converts the query to a JSON string representation.
+     * @return
+     */
+    public String toJson() {
+        JsonObject rootObject = new JsonObject();
+
+        if (_criteria.size() > 0) {
+            JsonObject whereObject = new JsonObject();
+            for (Criterion criterion : _criteria) {
+                whereObject.add(criterion.getColumn(), new JsonPrimitive(criterion.getValue().toString()));
+            }
+            rootObject.add("where", whereObject);
+        }
+
+        if (_orderBys.size() > 0) {
+            JsonObject orderObject = new JsonObject();
+            for (OrderBy orderBy: _orderBys) {
+                orderObject.add(orderBy.getColumn(), new JsonPrimitive(orderBy.getDirectionString()));
+            }
+            rootObject.add("order", orderObject);
+        }
+
+        if (_limit != null) {
+            rootObject.add("limit", new JsonPrimitive(_limit));
+        }
+
+        return rootObject.toString();
+    }
+
     //endregion
 
 
