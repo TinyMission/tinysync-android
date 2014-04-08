@@ -90,8 +90,7 @@ public abstract class DbContext {
      * automatically when the first query is run.
      */
     public void touch() {
-        SQLiteDatabase db = _openHelper.getWritableDatabase();
-        db.close();
+        getWritableDatabase();
     }
 
     boolean doesTableExist(SQLiteDatabase db, String tableName) {
@@ -125,6 +124,7 @@ public abstract class DbContext {
 
     /**
      * Drops all tables mapped by this context.
+     * This is an extremely destructive and remorseless method, use with caution.
      */
     public void destroySchema() {
         initialize();
@@ -133,7 +133,6 @@ public abstract class DbContext {
             Log.d(LogTag, "Dropping table " + set.getTableName());
             db.execSQL("DROP TABLE IF EXISTS " + set.getTableName());
         }
-        db.close();
     }
 
     /**
@@ -197,7 +196,7 @@ public abstract class DbContext {
     public SaveResult save() {
         initialize();
         SaveResult result = new SaveResult();
-        SQLiteDatabase db = _openHelper.getWritableDatabase();
+        SQLiteDatabase db = getWritableDatabase();
         for (DbCollection collection: _collections) {
             result.mergeFrom(collection.save(this, db));
         }
@@ -215,9 +214,9 @@ public abstract class DbContext {
         }
     }
 
-    public static class InvalidRelationshipException extends RuntimeException {
-        public InvalidRelationshipException(String rel, String name) {
-            super("No " + rel + " relationship found for " + name);
+    public static class InvalidAssociationException extends RuntimeException {
+        public InvalidAssociationException(String rel, String name) {
+            super("No " + rel + " association found for " + name);
         }
     }
 

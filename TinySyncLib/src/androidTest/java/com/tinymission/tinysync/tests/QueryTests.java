@@ -4,6 +4,7 @@ import android.test.AndroidTestCase;
 
 import com.tinymission.tinysync.db.DbSet;
 import com.tinymission.tinysync.query.OrderBy;
+import com.tinymission.tinysync.query.Query;
 
 import org.joda.time.DateTime;
 import org.junit.Test;
@@ -25,7 +26,6 @@ public class QueryTests extends AndroidTestCase {
         super.setUp();
 
         _context = new MyContext(getContext());
-        _context.destroySchema();
 
         for (int n=0; n<NUM_AUTHORS; n++) {
             Author author = new Author();
@@ -40,6 +40,7 @@ public class QueryTests extends AndroidTestCase {
     protected void tearDown() throws Exception {
         super.tearDown();
 
+        _context.destroySchema();
         _context.close();
     }
 
@@ -79,6 +80,16 @@ public class QueryTests extends AndroidTestCase {
 
         author = _context.authors.where("name", "Author 4").include("posts").run().first();
         assertEquals(numPosts, author.posts.getCachedValues().size());
+
+    }
+
+    @Test
+    public void testJson() {
+        Query<Author> query = Query.fromJson(_context.authors, "{\"where\": {\"name\": \"Author 5\"}}");
+        DbSet<Author> authors = _context.authors.runQuery(query);
+        assertEquals(1, authors.size());
+        assertEquals(5, authors.first().age);
+        assertEquals("Author 5", authors.first().name);
 
     }
 

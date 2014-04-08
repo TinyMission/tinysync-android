@@ -22,13 +22,13 @@ public class DbTests extends AndroidTestCase {
         super.setUp();
 
         _context = new MyContext(getContext());
-        _context.destroySchema();
     }
 
     @Override
     protected void tearDown() throws Exception {
         super.tearDown();
 
+        _context.destroySchema();
         _context.close();
     }
 

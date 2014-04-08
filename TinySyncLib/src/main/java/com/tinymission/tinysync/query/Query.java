@@ -1,8 +1,10 @@
 package com.tinymission.tinysync.query;
 
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import com.google.common.base.Joiner;
+import com.google.gson.*;
 import com.tinymission.tinysync.db.DbCollection;
 import com.tinymission.tinysync.db.DbColumn;
 import com.tinymission.tinysync.db.DbModel;
@@ -10,13 +12,15 @@ import com.tinymission.tinysync.db.DbSet;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Encapsulates all information about a query and provides a fluent API for creating them.
  */
 public class Query<T extends DbModel> {
+
+    static final String LogTag = "tinysync.query.Query";
 
     public Query(DbCollection<T> collection) {
         _collection = collection;
@@ -158,6 +162,74 @@ public class Query<T extends DbModel> {
             statements[i] = column + " " + direction;
         }
         return Joiner.on(", ").join(statements);
+    }
+
+    //endregion
+
+
+    //region JSON Serialization
+
+    /**
+     * Deserializes a JSON string into a query object.
+     * @param collection the collection that the query will be run against
+     * @param json a string containing a query
+     * @param <T> the model type
+     * @return the query object
+     */
+    public static <T extends DbModel> Query<T> fromJson(DbCollection<T> collection, String json) {
+        JsonParser parser = new JsonParser();
+        JsonElement root = parser.parse(json);
+        if (!root.isJsonObject())
+            throw new InvalidJsonQueryException("Root element must be an object");
+        JsonObject rootObject = root.getAsJsonObject();
+
+        Query<T> query = new Query<T>(collection);
+
+        JsonObject whereObject = rootObject.getAsJsonObject("where");
+        if (whereObject != null) {
+            for (Map.Entry<String, JsonElement> entry : whereObject.entrySet()) {
+                if (!entry.getValue().isJsonPrimitive())
+                    throw new InvalidJsonQueryException("Where clause " + entry.getKey() + " must contain a primitive");
+                query.where(entry.getKey(), entry.getValue().getAsString());
+            }
+        }
+
+        JsonObject orderObject = rootObject.getAsJsonObject("order");
+        if (orderObject != null) {
+            for (Map.Entry<String, JsonElement> entry : orderObject.entrySet()) {
+                JsonElement value = entry.getValue();
+                try {
+                    int direction;
+                    String directionString = value.getAsString();
+                    if (directionString.equalsIgnoreCase("asc"))
+                        direction = 1;
+                    else if (directionString.equalsIgnoreCase("desc"))
+                        direction = -1;
+                    else
+                        throw new InvalidJsonQueryException("Order clause " + entry.getKey() + " must contain either ASC or DESC");
+                    query.orderBy(entry.getKey(), direction);
+                }
+                catch (Exception ex) {
+                    Log.w(LogTag, "Error parsing orderBy clause " + entry.getKey(), ex);
+                    if (!entry.getValue().isJsonPrimitive())
+                        throw new InvalidJsonQueryException("Order clause " + entry.getKey() + " must contain either ASC or DESC");
+                }
+            }
+        }
+
+        return query;
+    }
+
+    //endregion
+
+
+    //region Exceptions
+
+    public static class InvalidJsonQueryException extends RuntimeException {
+        public InvalidJsonQueryException(String message) {
+            super("Invalid JSON query: " + message);
+
+        }
     }
 
     //endregion

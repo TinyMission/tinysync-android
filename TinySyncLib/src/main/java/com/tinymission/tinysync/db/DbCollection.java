@@ -7,7 +7,6 @@ import android.util.Log;
 
 import com.google.common.base.CaseFormat;
 import com.tinymission.tinysync.query.AssociationInclude;
-import com.tinymission.tinysync.query.OrderBy;
 import com.tinymission.tinysync.query.Query;
 import com.tinymission.tinysync.validation.FieldValidation;
 import com.tinymission.tinysync.validation.FieldValidator;
@@ -146,6 +145,7 @@ public class DbCollection<T extends DbModel> {
 
     private void readColumnNames(SQLiteDatabase db) {
         if (_columnNames != null) return;
+        _context.initialize();
         ArrayList<String> names = new ArrayList<String>();
         Cursor ti = db.rawQuery("PRAGMA table_info(" + _tableName + ")", null);
         while (ti.moveToNext()) {
@@ -173,7 +173,7 @@ public class DbCollection<T extends DbModel> {
     public DbHasManyMeta getHasMany(String name) {
         DbHasManyMeta meta = _hasManies.get(name);
         if (meta == null)
-            throw new DbContext.InvalidRelationshipException("has-many", name);
+            throw new DbContext.InvalidAssociationException("has-many", name);
         return meta;
     }
 
@@ -186,7 +186,7 @@ public class DbCollection<T extends DbModel> {
             if (meta.getModelClass().equals(modelClass))
                 return meta;
         }
-        throw new DbContext.InvalidRelationshipException("has-many", modelClass.getSimpleName());
+        throw new DbContext.InvalidAssociationException("has-many", modelClass.getSimpleName());
     }
 
     private HashMap<String, DbBelongsToMeta> _belongsTos = new HashMap<String, DbBelongsToMeta>();
@@ -203,7 +203,7 @@ public class DbCollection<T extends DbModel> {
     public DbBelongsToMeta getBelongsTo(String name) {
         DbBelongsToMeta meta = _belongsTos.get(name);
         if (meta == null)
-            throw new DbContext.InvalidRelationshipException("belongs-to", name);
+            throw new DbContext.InvalidAssociationException("belongs-to", name);
         return meta;
     }
 
@@ -216,7 +216,7 @@ public class DbCollection<T extends DbModel> {
             if (meta.getModelClass().equals(modelClass))
                 return meta;
         }
-        throw new DbContext.InvalidRelationshipException("belongs-to", modelClass.getSimpleName());
+        throw new DbContext.InvalidAssociationException("belongs-to", modelClass.getSimpleName());
     }
 
 
@@ -229,7 +229,7 @@ public class DbCollection<T extends DbModel> {
     }
 
     /**
-     * Gets the direction of the given association, or throws an InvalidRelationshipException if the association doesn't exist.
+     * Gets the direction of the given association, or throws an InvalidAssociationException if the association doesn't exist.
      * @param name
      * @return
      */
@@ -238,7 +238,7 @@ public class DbCollection<T extends DbModel> {
             return AssociationInclude.Direction.belongsTo;
         else if (_hasManies.containsKey(name))
             return AssociationInclude.Direction.hasMany;
-        throw new DbContext.InvalidRelationshipException("has-many or belongs-to", name);
+        throw new DbContext.InvalidAssociationException("has-many or belongs-to", name);
     }
 
     //endregion
