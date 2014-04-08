@@ -443,6 +443,48 @@ public class DbCollection<T extends DbModel> {
         return record;
     }
 
+    /**
+     * Begins a query with a where statement.
+     * @param property the name of the property, with an optional operator suffix
+     * @param value the value to compare against
+     * @return a query object
+     */
+    public Query<T> where(String property, Object value) {
+        return new Query<T>(this).where(property, value);
+    }
+
+    /**
+     * Begins a query with an orderBy statement
+     * @param column the name of the column (or model field) to order by
+     * @param direction the order direction (>= 0 for ascending, < 0 for descending)
+     * @return a query object
+     */
+    public Query<T> orderBy(String column, int direction) {
+        return new Query<T>(this).orderBy(column, direction);
+    }
+
+    /**
+     * Begins a query with a limit statement
+     * @param limit the maximum number of records to return
+     * @return a query object
+     */
+    public Query<T> limit(Integer limit) {
+        return new Query<T>(this).limit(limit);
+    }
+
+    /**
+     * Executes a query on this collection.
+     * @param query the query object to execute
+     * @return a set of the results
+     */
+    public DbSet<T> runQuery(Query<T> query) {
+        SQLiteDatabase db = _context.getReadableDatabase();
+        readColumnNames(db);
+        Cursor cursor = db.query(_tableName, _columnNames, query.getSelection(), query.getSelectionArgs(),
+                null, null, query.getOrderBy(), query.getLimitString());
+        return new DbSet<T>(this, cursor, query.getIncludes());
+    }
+
     //endregion
 
 
@@ -475,43 +517,6 @@ public class DbCollection<T extends DbModel> {
             record.onValidate();
         }
         return !record.hasErrors();
-    }
-
-    //endregion
-
-
-    //region Querying
-
-    /**
-     * Begins a query with a where statement.
-     * @param property the name of the property, with an optional operator suffix
-     * @param value the value to compare against
-     * @return a query object
-     */
-    public Query<T> where(String property, Object value) {
-        return new Query<T>(this).where(property, value);
-    }
-
-    /**
-     * Begins a query with an orderBy statement
-     * @param column the name of the column (or model field) to order by
-     * @param direction the order direction (>= 0 for ascending, < 0 for descending)
-     * @return a query object
-     */
-    public Query<T> orderBy(String column, int direction) {
-        return new Query<T>(this).orderBy(column, direction);
-    }
-
-    /**
-     * Executes a query on this collection.
-     * @param query the query object to execute
-     * @return a set of the results
-     */
-    public DbSet<T> runQuery(Query<T> query) {
-        SQLiteDatabase db = _context.getReadableDatabase();
-        readColumnNames(db);
-        Cursor cursor = db.query(_tableName, _columnNames, query.getSelection(), query.getSelectionArgs(), null, null, query.getOrderBy());
-        return new DbSet<T>(this, cursor, query.getIncludes());
     }
 
     //endregion

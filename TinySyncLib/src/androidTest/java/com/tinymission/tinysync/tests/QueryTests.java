@@ -84,6 +84,13 @@ public class QueryTests extends AndroidTestCase {
     }
 
     @Test
+    public void testLimit() {
+        final int limit = 2;
+        DbSet<Author> authors = _context.authors.limit(limit).run();
+        assertEquals(limit, authors.size());
+    }
+
+    @Test
     public void testJson() {
         Query<Author> query = Query.fromJson(_context.authors, "{\"where\": {\"name\": \"Author 5\"}}");
         DbSet<Author> authors = _context.authors.runQuery(query);

@@ -164,6 +164,29 @@ public class Query<T extends DbModel> {
         return Joiner.on(", ").join(statements);
     }
 
+    private Integer _limit = null;
+
+    /**
+     * @param limit the maximum number of results to return
+     */
+    public Query<T> limit(Integer limit) {
+        _limit = limit;
+        return this;
+    }
+
+    /**
+     * @return the maximum number of results to return
+     */
+    public Integer getLimit() {
+        return _limit;
+    }
+
+    public String getLimitString() {
+        if (_limit == null)
+            return null;
+        return _limit.toString();
+    }
+
     //endregion
 
 
@@ -214,6 +237,16 @@ public class Query<T extends DbModel> {
                     if (!entry.getValue().isJsonPrimitive())
                         throw new InvalidJsonQueryException("Order clause " + entry.getKey() + " must contain either ASC or DESC");
                 }
+            }
+        }
+
+        JsonElement limitElement = rootObject.get("limit");
+        if (limitElement != null) {
+            try {
+                query.limit(limitElement.getAsInt());
+            }
+            catch (Exception ex) {
+                throw new InvalidJsonQueryException("Limit clause must contain and integer");
             }
         }
 
