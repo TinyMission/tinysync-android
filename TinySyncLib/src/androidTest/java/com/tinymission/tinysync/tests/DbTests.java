@@ -52,6 +52,7 @@ public class DbTests extends AndroidTestCase {
         Author bob = new Author();
         bob.name = "Bob Johnson";
         bob.age = 42;
+        bob.seniority = Author.Seniority.senior;
         _context.authors.add(bob);
 
         Author jill = new Author();
@@ -90,7 +91,7 @@ public class DbTests extends AndroidTestCase {
         Author bob2 = _context.authors.find(bob.id);
         assertEquals(bob.name, bob2.name);
         assertTrue(bob2.isPersisted());
-        assertEquals(DbModel.SyncState.infant, bob2.syncState);
+        assertEquals(DbModel.SyncState.created, bob2.syncState);
         assertEquals("Bob Johnson", bob2.name);
         assertEquals(42, bob2.age);
         assertEquals(Author.Seniority.senior, bob2.seniority);

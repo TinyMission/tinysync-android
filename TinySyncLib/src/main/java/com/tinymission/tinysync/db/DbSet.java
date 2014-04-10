@@ -9,7 +9,9 @@ import java.util.ArrayList;
 import java.util.Set;
 
 /**
- * A readonly set of DbModel objects.
+ * A readonly set of DbModel objects returned from a query.
+ * The objects are lazily deserialized in linear order,
+ * so it will only create objects for records you request (and all before them).
  */
 public class DbSet<T extends DbModel> implements Iterable<T> {
 
@@ -45,7 +47,8 @@ public class DbSet<T extends DbModel> implements Iterable<T> {
     }
 
     private T compute(int i) {
-        while (_computedIndex < i) {
+        int size = size();
+        while (_computedIndex < i && _computedIndex < size-1) {
             try {
                 _computedIndex++;
                 T record = _collection.deserializeRow(_cursor, _includes);
@@ -63,6 +66,20 @@ public class DbSet<T extends DbModel> implements Iterable<T> {
     public T first() {
         return compute(0);
     }
+
+    public T next() {
+        return compute(_computedIndex+1);
+    }
+
+    public DbModel[] toArray() {
+        DbModel[] array = new DbModel[size()];
+        compute(size());
+        for (int i=0; i<array.length; i++) {
+            array[i] = _records.get(i);
+        }
+        return array;
+    }
+
 
     class Iterator implements java.util.Iterator<T> {
 

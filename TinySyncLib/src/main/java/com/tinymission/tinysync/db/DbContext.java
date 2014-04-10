@@ -140,11 +140,37 @@ public abstract class DbContext {
      * @return the collection corresponding to the model class
      */
     public <T extends DbModel> DbCollection<T> getCollection(Class<T> modelClass) {
+        initialize();
         for (DbCollection<?> collection: _collections) {
             if (collection.getModelClass().equals(modelClass))
                 return (DbCollection<T>) collection;
         }
         throw new InvalidCollectionException(modelClass.getSimpleName());
+    }
+
+    /**
+     * Gets a collection by table name
+     * @param name
+     * @return
+     */
+    public DbCollection getCollection(String name) {
+        initialize();
+        for (DbCollection collection: _collections) {
+            if (collection.getTableName().equalsIgnoreCase(name))
+                return collection;
+        }
+        throw new InvalidCollectionException(name);
+    }
+
+    /**
+     * Implementers can override this to provide a list of entity names in the desired sync order.
+     * @return
+     */
+    public String[] getSyncOrder() {
+        String[] entityNames = new String[_collections.size()];
+        for (int i=0; i<_collections.size(); i++)
+            entityNames[i] = _collections.get(i).getTableName();
+        return entityNames;
     }
 
     //endregion

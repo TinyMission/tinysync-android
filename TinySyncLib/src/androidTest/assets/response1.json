@@ -1,0 +1,37 @@
+{
+    "last_synced": "2014-02-14T09:12:43-0700",
+    "entities": [
+        {
+            "name": "author",
+            "scope": {},
+            "created": [
+                {
+                    "id": "52212589594cc44541000016",
+                    "name": "Author 1",
+                    "age": 42,
+                    "seniority": "senior"
+                }
+            ]
+        },
+        {
+            "name": "post",
+            "scope": {"author_id": "52212589594cc44541000016"},
+            "created": [
+                {
+                    "id": "52212589594cc44541000016",
+                    "title": "Post 1",
+                    "body": "This is my first post!",
+                    "posted_at": "2014-03-14T09:32:12-0700",
+                    "points": 32
+                },
+                {
+                    "id": "52212589594cc44541000021",
+                    "title": "Post 2",
+                    "body": "This is my second post!",
+                    "posted_at": "2014-03-15T14:23:12-0700",
+                    "points": 12
+                }
+            ]
+        }
+    ]
+}

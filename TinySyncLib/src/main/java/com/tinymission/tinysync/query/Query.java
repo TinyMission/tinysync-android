@@ -199,16 +199,11 @@ public class Query<T extends DbModel> {
      * @param <T> the model type
      * @return the query object
      */
-    public static <T extends DbModel> Query<T> fromJson(DbCollection<T> collection, String json) {
-        JsonParser parser = new JsonParser();
-        JsonElement root = parser.parse(json);
-        if (!root.isJsonObject())
-            throw new InvalidJsonQueryException("Root element must be an object");
-        JsonObject rootObject = root.getAsJsonObject();
-
+    public static <T extends DbModel> Query<T> fromJson(DbCollection<T> collection, JsonObject json) {
         Query<T> query = new Query<T>(collection);
 
-        JsonObject whereObject = rootObject.getAsJsonObject("where");
+        // parse where
+        JsonObject whereObject = json.getAsJsonObject("where");
         if (whereObject != null) {
             for (Map.Entry<String, JsonElement> entry : whereObject.entrySet()) {
                 if (!entry.getValue().isJsonPrimitive())
@@ -217,7 +212,8 @@ public class Query<T extends DbModel> {
             }
         }
 
-        JsonObject orderObject = rootObject.getAsJsonObject("order");
+        // parse order
+        JsonObject orderObject = json.getAsJsonObject("order");
         if (orderObject != null) {
             for (Map.Entry<String, JsonElement> entry : orderObject.entrySet()) {
                 JsonElement value = entry.getValue();
@@ -240,7 +236,8 @@ public class Query<T extends DbModel> {
             }
         }
 
-        JsonElement limitElement = rootObject.get("limit");
+        // parse limit
+        JsonElement limitElement = json.get("limit");
         if (limitElement != null) {
             try {
                 query.limit(limitElement.getAsInt());
@@ -251,6 +248,21 @@ public class Query<T extends DbModel> {
         }
 
         return query;
+    }
+
+    /**
+     * Deserializes a JSON string into a query object.
+     * @param collection the collection that the query will be run against
+     * @param json a string containing a query
+     * @param <T> the model type
+     * @return the query object
+     */
+    public static <T extends DbModel> Query<T> fromJson(DbCollection<T> collection, String json) {
+        JsonParser parser = new JsonParser();
+        JsonElement root = parser.parse(json);
+        if (!root.isJsonObject())
+            throw new InvalidJsonQueryException("Root element must be an object");
+        return Query.fromJson(collection, root.getAsJsonObject());
     }
 
     /**

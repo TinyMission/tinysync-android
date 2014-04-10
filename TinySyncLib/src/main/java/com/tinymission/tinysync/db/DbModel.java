@@ -17,7 +17,7 @@ import java.util.Set;
 public abstract class DbModel {
 
     public enum SyncState {
-        infant, alive, dead
+        created, synced, updated, deleted
     }
 
     @DbColumn()
@@ -30,7 +30,7 @@ public abstract class DbModel {
     public DateTime updatedAt;
 
     @DbColumn()
-    public SyncState syncState = SyncState.infant;
+    public SyncState syncState = SyncState.created;
 
     boolean _persisted = false;
 
@@ -39,6 +39,15 @@ public abstract class DbModel {
      */
     public boolean isPersisted() {
         return _persisted;
+    }
+
+    /**
+     * Only use this if you know what you're doing.
+     * @param persisted
+     * @return
+     */
+    public void setIsPersisted(boolean persisted) {
+        _persisted = persisted;
     }
 
     public DbModel() {

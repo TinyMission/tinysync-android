@@ -133,6 +133,8 @@ public class DbCollection<T extends DbModel> {
         for (DbColumnMap columnMap: _columnMaps.values()) {
             if (columnMap.getField().getName().equals(fieldName))
                 return columnMap.getColumnName();
+            if (columnMap.getColumnName().equalsIgnoreCase(fieldName))
+                return fieldName;
         }
         for (DbBelongsToMeta belongsTo: _belongsTos.values()) {
             if (belongsTo.getColumnName().equals(fieldName))
@@ -274,6 +276,12 @@ public class DbCollection<T extends DbModel> {
             _newRecords.add(record);
     }
 
+    public void addAll(T[] records) {
+        for (T record: records) {
+            add(record);
+        }
+    }
+
     private ContentValues contentValuesForRecord(T record) {
         ContentValues values = new ContentValues(_columnMaps.size());
         for (DbColumnMap columnMap : _columnMaps.values()) {
@@ -311,6 +319,7 @@ public class DbCollection<T extends DbModel> {
     private boolean updateRecord(SQLiteDatabase db, T record) {
         try {
             record.updatedAt = DateTime.now();
+            record.syncState = DbModel.SyncState.updated;
             ContentValues values = contentValuesForRecord(record);
             db.update(_tableName, values, "id = ?", new String[]{record.id.toString()});
             cacheRecord(record);

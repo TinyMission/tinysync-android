@@ -20,7 +20,7 @@ public class ObjectIdSerializer extends DbSerializer {
 
     @Override
     public String serialize(DbModel model, Field field) throws IllegalAccessException {
-        return field.get(model).toString();
+        return ((ObjectId)field.get(model)).toHexString();
     }
 
     @Override
