@@ -1,1 +1,1 @@
-include ':TinySyncLib'
+include ':Demo', 'Lib'
