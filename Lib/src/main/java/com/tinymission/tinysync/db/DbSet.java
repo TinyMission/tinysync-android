@@ -74,7 +74,7 @@ public class DbSet<T extends DbModel> implements Iterable<T> {
     public DbModel[] toArray() {
         DbModel[] array = new DbModel[size()];
         if (size() > 0)
-            compute(size());
+            compute(size()-1);
         for (int i=0; i<array.length; i++) {
             array[i] = _records.get(i);
         }

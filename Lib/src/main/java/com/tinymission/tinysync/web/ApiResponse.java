@@ -5,6 +5,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceResponse;
 
 import com.google.gson.Gson;
+import com.tinymission.tinysync.db.DbCollection;
 import com.tinymission.tinysync.db.DbModel;
 
 import java.io.ByteArrayInputStream;
@@ -26,11 +27,12 @@ public class ApiResponse {
         return _status.toString();
     }
 
-    private String _collection;
+    private DbCollection _collection;
+    private String _collectionName;
 
     @JavascriptInterface
     public String collection() {
-        return _collection;
+        return _collectionName;
     }
 
     private String _message;
@@ -44,28 +46,29 @@ public class ApiResponse {
 
     @JavascriptInterface
     public String dataJson() {
-        Gson gson = new Gson();
+        Gson gson = _collection.getContext().getGson();
         return gson.toJson(_data);
     }
 
-    public ApiResponse(String collection, Status status, String message, DbModel[] data) {
-        this._collection = collection;
+    public ApiResponse(DbCollection collection, Status status, String message, DbModel[] data) {
+        _collection = collection;
+        this._collectionName = collection.getTableName();
         this._status = status;
         this._message = message;
         this._data = data;
     }
 
-    public static ApiResponse success(String collection, String message, DbModel[] data) {
+    public static ApiResponse success(DbCollection collection, String message, DbModel[] data) {
         return new ApiResponse(collection, Status.success, message, data);
     }
 
-    public static ApiResponse error(String collection, String message) {
+    public static ApiResponse error(DbCollection collection, String message) {
         return new ApiResponse(collection, Status.error, message, null);
     }
 
 
     public WebResourceResponse toResponse() {
-        Gson gson = new Gson();
+        Gson gson = _collection.getContext().getGson();
         String json = gson.toJson(this);
         try {
             InputStream stream = new ByteArrayInputStream(json.getBytes("UTF-8"));

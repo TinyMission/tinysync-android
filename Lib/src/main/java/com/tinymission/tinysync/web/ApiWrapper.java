@@ -28,15 +28,15 @@ public class ApiWrapper {
         Log.v(LogTag, "API get on collection " + collectionName + " with query " + rawQuery);
         DbCollection collection = _context.getCollection(collectionName);
         if (collection == null)
-            return ApiResponse.error(collectionName, "Unknown collection");
+            return ApiResponse.error(null, "Unknown collection");
         Query query = Query.fromJson(collection, rawQuery);
         try {
             DbSet results = collection.runQuery(query);
-            return ApiResponse.success(collection.getTableName(), "Successfully executed query", results.toArray());
+            return ApiResponse.success(collection, "Successfully executed query", results.toArray());
         }
         catch (Exception ex) {
             Log.w(LogTag, "Error executing get on " + collection.getTableName(), ex);
-            return ApiResponse.error(collection.getTableName(), "Error executing query: " + ex.getMessage());
+            return ApiResponse.error(collection, "Error executing query: " + ex.getMessage());
         }
     }
 
@@ -45,22 +45,22 @@ public class ApiWrapper {
         Log.v(LogTag, "API create on collection " + collectionName + " with record " + rawRecord);
         DbCollection collection = _context.getCollection(collectionName);
         if (collection == null)
-            return ApiResponse.error(collectionName, "Unknown collection");
+            return ApiResponse.error(collection, "Unknown collection");
         try {
             DbModel record = collection.fromJson(rawRecord);
             collection.add(record);
             SaveResult result = _context.save();
             if (result.getInserted().size() == 1)
-                return ApiResponse.success(collectionName, "Successfully inserted record", result.getInserted().toArray(new DbModel[1]));
+                return ApiResponse.success(collection, "Successfully inserted record", result.getInserted().toArray(new DbModel[1]));
             else if (result.getErrored().size() > 0) {
                 DbModel errored = result.getErrored().iterator().next();
-                return ApiResponse.error(collectionName, "Error inserting record: " + errored.getErrorMessage());
+                return ApiResponse.error(collection, "Error inserting record: " + errored.getErrorMessage());
             } else {
-                return ApiResponse.error(collectionName, "Error inserting record");
+                return ApiResponse.error(collection, "Error inserting record");
             }
         }
         catch (Exception ex) {
-            return ApiResponse.error(collectionName, "Error inserting record: " + ex.getMessage());
+            return ApiResponse.error(collection, "Error inserting record: " + ex.getMessage());
         }
     }
 

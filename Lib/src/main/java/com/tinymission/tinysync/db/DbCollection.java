@@ -64,6 +64,10 @@ public class DbCollection<T extends DbModel> {
         _context = context;
     }
 
+    public DbContext getContext() {
+        return _context;
+    }
+
     private void parseField(T template, Field field) {
         if (field.getType().isAssignableFrom(DbHasMany.class)) {
             DbHasManyMeta meta = new DbHasManyMeta(field, template);
@@ -258,14 +262,18 @@ public class DbCollection<T extends DbModel> {
      * @return a new record object based on the JSON
      */
     public T fromJson(String rawRecord) {
-//        JsonParser parser = new JsonParser();
-//        JsonElement root = parser.parse(rawRecord);
-//        if (!root.isJsonObject())
-//            throw new DbContext.InvalidRecordException(_tableName, "must be an object");
-//        JsonObject rootObject = root.getAsJsonObject();
-        Gson gson = new Gson();
+        Gson gson = _context.getGson();
         T record = gson.fromJson(rawRecord, _modelClass);
         return record;
+    }
+
+    /**
+     * Serializes the record to JSON.
+     * @return a string with the JSON representation of the object.
+     */
+    public String toJson() {
+        Gson gson = _context.getGson();
+        return gson.toJson(this);
     }
 
     //endregion

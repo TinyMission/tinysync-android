@@ -6,8 +6,22 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.google.common.base.Joiner;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import org.joda.time.DateTime;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -250,6 +264,76 @@ public abstract class DbContext {
         public InvalidRecordException(String collectionName, String message) {
             super("Record for " + collectionName + " " + message);
         }
+    }
+
+    //endregion
+
+
+    //region JSON Serialization
+
+    public final class DateTimeGsonSerializer implements JsonDeserializer<DateTime>, JsonSerializer<DateTime>
+    {
+
+        @Override
+        public DateTime deserialize(final JsonElement je, final Type type,
+                                    final JsonDeserializationContext jdc) throws JsonParseException
+        {
+            long longValue = je.getAsLong();
+            if (longValue == 0)
+                return null;
+            return new DateTime(longValue);
+        }
+
+        @Override
+        public JsonElement serialize(final DateTime src, final Type typeOfSrc,
+                                     final JsonSerializationContext context)
+        {
+            return new JsonPrimitive(src == null ? 0 : src.getMillis());
+        }
+    }
+
+    public final class ObjectIdGsonSerializer implements JsonDeserializer<ObjectId>, JsonSerializer<ObjectId>
+    {
+
+        @Override
+        public ObjectId deserialize(final JsonElement je, final Type type,
+                                    final JsonDeserializationContext jdc) throws JsonParseException
+        {
+            String stringValue = je.getAsString();
+            if (stringValue == null)
+                return null;
+            return new ObjectId(stringValue);
+        }
+
+        @Override
+        public JsonElement serialize(final ObjectId src, final Type typeOfSrc,
+                                     final JsonSerializationContext context)
+        {
+            return new JsonPrimitive(src == null ? null : src.toString());
+        }
+    }
+
+    public final class PrivateExclusionStrategy implements ExclusionStrategy {
+        @Override
+        public boolean shouldSkipField(FieldAttributes f) {
+            return f.getName().startsWith("_");
+        }
+
+        @Override
+        public boolean shouldSkipClass(Class<?> clazz) {
+            return false;
+        }
+    }
+
+    /**
+     * @return a Gson object that properly serializes the types used by TinySync
+     */
+    public Gson getGson() {
+        return new GsonBuilder()
+                .registerTypeAdapter(DateTime.class, new DateTimeGsonSerializer())
+                .registerTypeAdapter(ObjectId.class, new ObjectIdGsonSerializer())
+                .addSerializationExclusionStrategy(new PrivateExclusionStrategy())
+                .create();
     }
 
     //endregion

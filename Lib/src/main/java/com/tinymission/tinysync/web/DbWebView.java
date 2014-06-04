@@ -108,11 +108,11 @@ public class DbWebView extends WebView {
             Query query = Query.fromParams(collection, rawQuery);
             try {
                 DbSet results = collection.runQuery(query);
-                return ApiResponse.success(collection.getTableName(), "Successfully executed query", results.toArray());
+                return ApiResponse.success(collection, "Successfully executed query", results.toArray());
             }
             catch (Exception ex) {
                 Log.w(LogTag, "Error executing get on " + collection.getTableName(), ex);
-                return ApiResponse.error(collection.getTableName(), "Error executing query: " + ex.getMessage());
+                return ApiResponse.error(collection, "Error executing query: " + ex.getMessage());
             }
         }
 
@@ -124,22 +124,22 @@ public class DbWebView extends WebView {
                 url = url.replace(_apiRoot, "");
                 String[] comps1 = Iterables.toArray(Splitter.on("/").omitEmptyStrings().split(url), String.class);
                 if (comps1.length != 2)
-                    return ApiResponse.error("unknown", "API requests must have the form /root/collection/method?query").toResponse();
+                    return ApiResponse.error(null, "API requests must have the form /root/collection/method?query").toResponse();
 
                 String collectionName = comps1[0];
                 DbCollection collection = _dbContext.getCollection(collectionName);
                 if (collection == null)
-                    return ApiResponse.error(collectionName, "Unknown collection " + collectionName).toResponse();
+                    return ApiResponse.error(collection, "Unknown collection " + collectionName).toResponse();
 
                 String[] comps2 = Iterables.toArray(Splitter.on("?").split(comps1[1]), String.class);
                 if (comps2.length != 2)
-                    return ApiResponse.error(collectionName, "Must specify a method and query").toResponse();
+                    return ApiResponse.error(collection, "Must specify a method and query").toResponse();
                 String actionName = comps2[0];
                 String params = comps2[1];
                 if (actionName.equalsIgnoreCase("get"))
                     return get(collection, params).toResponse();
                 else
-                    return ApiResponse.error(collectionName, "Unknown action " + actionName).toResponse();
+                    return ApiResponse.error(collection, "Unknown action " + actionName).toResponse();
             }
 
             return super.shouldInterceptRequest(view, url);
